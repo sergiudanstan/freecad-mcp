@@ -1,5 +1,10 @@
 # freecad-mcp
 
+[![CI](https://github.com/sergiudanstan/freecad-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiudanstan/freecad-mcp/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/sergiudanstan/freecad-mcp/actions/workflows/codeql.yml/badge.svg)](https://github.com/sergiudanstan/freecad-mcp/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sergiudanstan/freecad-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/sergiudanstan/freecad-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 MCP (Model Context Protocol) server for FreeCAD parametric 3D CAD modeling. Provides 165 tools across 15 modules for document management, primitives, booleans, sketching, part design, meshing, FEM, BIM, and more.
 
 ## Prerequisites
@@ -101,12 +106,15 @@ The server looks for `freecadcmd` at `/Applications/FreeCAD.app/Contents/Resourc
 
 ## Security
 
-- All inputs are validated at runtime (numeric ranges, string sanitization, path traversal prevention)
-- File operations block access to system paths (`/etc/`, `/proc/`, etc.)
+- Strings are escaped before they go into generated Python; numeric range checks and file-path checks (absolute paths only, no `..`, system paths blocked) are applied in the tool modules that use `src/validation.ts`, not uniformly across all of them
 - The `freecad_execute_python` tool allows arbitrary Python execution by design — only use in trusted environments
-- The GUI socket server listens only on localhost (`127.0.0.1:12345`)
+- The GUI socket server listens only on localhost (`127.0.0.1:12345`) and has no authentication: any local process can run Python in your FreeCAD session
 
-See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+See [SECURITY.md](SECURITY.md) for the threat model and vulnerability reporting.
+
+## Development
+
+`npm ci && npm test` builds the server and runs the tests (no FreeCAD needed). See [CONTRIBUTING.md](CONTRIBUTING.md) for branches and releases, [SECURITY.md](SECURITY.md) for reporting vulnerabilities, and [CHANGELOG.md](CHANGELOG.md) for history.
 
 ## License
 

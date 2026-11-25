@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default; no job here needs to write anything.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: build and test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install dependencies from the lockfile
+        run: npm ci --ignore-scripts
+      - name: Type-check and build (tsc, strict)
+        run: npm run build
+      - name: Unit tests, tool registry and input validation over a real MCP stdio session
+        run: node --test test/*.test.mjs
+      - name: Syntax-check the FreeCAD GUI macro
+        # The macro needs FreeCAD's Python modules, so it cannot run here; parsing
+        # it still catches syntax errors before they reach a user's FreeCAD.
+        run: python3 -c "import ast; ast.parse(open('freecad_server.FCMacro').read())"
+
+  audit:
+    name: security audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Install audit tooling (hash-pinned)
+        run: python -m pip install --require-hashes -r .github/requirements-ci.lock
+      - name: Known vulnerabilities in the CI toolchain
+        run: pip-audit --strict --no-deps -r .github/requirements-ci.lock --progress-spinner off
+      - name: Known vulnerabilities in npm dependencies
+        run: npm audit --audit-level=low
+      - name: Audit the workflows themselves
+        run: zizmor --format plain .github/workflows/

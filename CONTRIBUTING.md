@@ -1,57 +1,44 @@
-# Contributing to freecad-mcp
+# Contributing
 
-Thank you for your interest in contributing to freecad-mcp!
+Contributions are welcome. This is a single-maintainer project, so please open an issue
+before starting anything substantial.
 
-## Getting Started
+**Security problems do not belong in issues.** Follow [SECURITY.md](SECURITY.md).
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/freecad-mcp.git`
-3. Install dependencies: `npm install`
-4. Build: `npm run build`
+## Branches, pull requests and releases
 
-## Prerequisites
+- `main` is the only long-lived branch and is protected: changes land through a pull
+  request with the required checks green, commits on `main` are signed, and force-pushes
+  are refused. Pull requests are squash-merged; GitHub deletes the branch on merge.
+- Branch names: `<type>/<topic>` (`feat/`, `fix/`, `docs/`, `chore/`, `release/`);
+  agents use `agent/<name>/<topic>`.
+- A release is a pull request that bumps `version` in `package.json` (the single version
+  source) and moves `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) to a dated version.
+  After it merges, a signed `vX.Y.Z` tag on that commit triggers `release.yml`, which
+  refuses to run if the tag, `package.json` and the changelog disagree. Tags are never
+  moved or deleted.
 
-- Node.js >= 18
-- FreeCAD installed (tested with FreeCAD 0.21+)
-- TypeScript knowledge
+## Running it locally
 
-## Development Workflow
+```bash
+npm ci
+npm run build                          # tsc, strict mode -> dist/
+npm test                               # build, then node --test test/*.test.mjs
+node dist/index.js                     # stdio MCP server (FreeCAD not needed to start it)
+```
 
-1. Create a feature branch: `git checkout -b feature/my-feature`
-2. Make your changes in `src/`
-3. Build and test: `npm run build`
-4. Commit with clear messages
-5. Push and open a Pull Request
+The tests need Node.js >= 22 and **do not need FreeCAD**: they check the tool registry,
+the validation helpers and the errors returned over a real MCP stdio session. Anything
+that actually drives FreeCAD (0.21 or later) must be tried by hand against a running
+FreeCAD or `freecadcmd`.
 
-## Code Style
+## Code style for tools
 
-- TypeScript strict mode
-- Use `JSON.stringify()` for string parameters passed to Python (prevents injection)
-- Use `validateNumber()` / `validateString()` from `src/validation.ts` for runtime input validation
-- All numeric inputs must have range checks
-- All file paths must be validated against path traversal
-
-## Adding New Tools
-
-1. Create or edit a tool file in `src/tools/`
-2. Define the tool schema with `inputSchema`
-3. Add the handler in the switch statement
-4. Register the tool in `src/index.ts`
-5. Add input validation for all parameters
-
-## Security
-
-- Never use string interpolation for user-provided strings in Python code. Use `JSON.stringify()`.
-- All file path inputs must go through `validateFilePath()`.
-- See [SECURITY.md](SECURITY.md) for vulnerability reporting.
-
-## Pull Request Checklist
-
-- [ ] Code builds without errors (`npm run build`)
-- [ ] Input validation added for new parameters
-- [ ] No hardcoded paths or credentials
-- [ ] Tool description is clear and accurate
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+- TypeScript strict mode; match the surrounding style.
+- Pass strings to generated Python through `escapeString` / `JSON.stringify`, never by
+  plain interpolation.
+- Use `validateNumber` / `validatePositiveNumber` / `validateString` from
+  `src/validation.ts` for new parameters and `validateFilePath` for every file path.
+- A new tool goes in its module under `src/tools/`, with an `inputSchema`, a handler case
+  and a registration in `src/index.ts`; update the tool count in the README and the test
+  that asserts it.
