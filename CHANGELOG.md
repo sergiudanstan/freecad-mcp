@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-25
+
+### Fixed
+- The release workflow builds the SBOM from `package-lock.json` (`npm sbom --package-lock-only`).
+  It used to run after an install without devDependencies, and `npm sbom` refused the incomplete
+  tree, so the `v1.1.0` tag never produced a release. That tag is kept as it is; this is the first
+  published release.
+
 ## [1.1.0] - 2026-11-25
 
 First tagged release. freecad-mcp is an MCP server for FreeCAD with 165 tools across
@@ -47,5 +55,6 @@ headless; the code itself is unchanged from the 1.0.0 source release below.
 - Added file path traversal prevention for import/export operations
 - Added security warning to `freecad_execute_python` tool description
 
-[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/sergiudanstan/freecad-mcp/releases/tag/v1.1.1
 [1.1.0]: https://github.com/sergiudanstan/freecad-mcp/releases/tag/v1.1.0
