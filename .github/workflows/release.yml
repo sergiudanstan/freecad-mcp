@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --omit dev --ignore-scripts
-          npm sbom --sbom-format cyclonedx --omit dev > "dist/${REPO}-${TAG}.cdx.json"
+          npm sbom --sbom-format cyclonedx --omit dev --package-lock-only > "dist/${REPO}-${TAG}.cdx.json"
 
       # GitHub-hosted Sigstore provenance; verify with
       #   gh attestation verify <file> --repo <owner>/<repo>
