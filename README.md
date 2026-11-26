@@ -68,7 +68,7 @@ claude mcp add freecad node /path/to/freecad-mcp/dist/index.js
 
 If FreeCAD GUI is not running, the server automatically falls back to headless mode using `freecadcmd`. This works for scripting and automation but you won't see visual output.
 
-The server looks for `freecadcmd` at `/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd` by default. Override with:
+By default the server uses `freecadcmd` from your `PATH`, falling back to `/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd` on macOS. Override with:
 
 ```json
 {
@@ -88,21 +88,21 @@ The server looks for `freecadcmd` at `/Applications/FreeCAD.app/Contents/Resourc
 
 | Module | Tools | Description |
 |--------|-------|-------------|
-| Document | 7 | New, open, save, close, list objects, get info |
+| Document | 6 | New, open, save, close, list objects, get info |
 | Primitives | 11 | Box, cylinder, sphere, cone, torus, tube, prism, helix, spiral, ellipsoid, wedge |
 | Operations | 17 | Boolean (fuse/cut/intersect/XOR/fragments), fillet, chamfer, move, rotate, copy, mirror, slice |
-| Sketcher | 12 | Create sketches, add lines, arcs, circles, constraints, close/validate |
-| Part Design | 10 | Pad, pocket, revolve, hole, groove, chamfer, fillet, mirror, linear/polar pattern |
-| Import/Export | 16 | STEP, STL, OBJ, IGES, DXF, SVG, BREP import/export, measurements, Python execution |
-| Draft | 10 | Wire, rectangle, circle, polygon, BSpline, array, clone, offset, upgrade/downgrade |
+| Sketcher | 16 | Create sketches, add lines, arcs, circles, constraints, close/validate |
+| Part Design | 20 | Pad, pocket, revolve, hole, groove, chamfer, fillet, mirror, linear/polar pattern |
+| Import/Export | 17 | STEP, STL, OBJ, IGES, DXF, SVG, BREP import/export, measurements, Python execution |
+| Draft | 17 | Wire, rectangle, circle, polygon, BSpline, array, clone, offset, upgrade/downgrade |
 | Mesh | 7 | Tessellate, mesh-to-shape, repair, decimate, refine, info, boolean |
-| TechDraw | 8 | Drawing pages, views, dimensions, annotations |
-| Advanced | 12 | Loft, sweep, pipe, thickness, offset surface, section, projection |
-| Spreadsheet | 6 | Create, set cells, get cells, alias, formulas |
-| BIM | 8 | Walls, columns, slabs, windows, roofs, stairs, spaces |
-| FEM | 10 | Analysis, material, constraints, mesh generation, solver |
-| Surface | 8 | Filling, curves on mesh, extending, trimming |
-| Assembly | 8 | Assembly creation, constraints, bill of materials |
+| TechDraw | 6 | Drawing pages, views, dimensions, annotations |
+| Advanced | 11 | Loft, sweep, pipe, thickness, offset surface, section, projection |
+| Spreadsheet | 5 | Create, set cells, get cells, alias, formulas |
+| BIM | 9 | Walls, columns, slabs, windows, roofs, stairs, spaces |
+| FEM | 8 | Analysis, material, constraints, mesh generation, solver |
+| Surface | 5 | Filling, curves on mesh, extending, trimming |
+| Assembly | 10 | Assembly creation, constraints, bill of materials |
 
 ## Security
 

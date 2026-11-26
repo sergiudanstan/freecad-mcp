@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { FreeCADBridge } from './freecad-bridge.js';
+import { resolveFreecadCmd } from './freecad-cmd.js';
 
 import { DOCUMENT_TOOLS, handleDocumentTool } from './tools/document.js';
 import { PRIMITIVE_TOOLS, handlePrimitiveTool } from './tools/primitives.js';
@@ -25,7 +26,7 @@ import { FEM_TOOLS, handleFemTool } from './tools/fem.js';
 import { SURFACE_TOOLS, handleSurfaceTool } from './tools/surface.js';
 import { ASSEMBLY_TOOLS, handleAssemblyTool } from './tools/assembly.js';
 
-const FREECAD_CMD = process.env.FREECAD_CMD || '/Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd';
+const FREECAD_CMD = resolveFreecadCmd();
 
 const ALL_TOOLS = [
   ...DOCUMENT_TOOLS,
