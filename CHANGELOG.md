@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-11-26
+
+### Security
+- Dependency updates (lockfile): hono 4.13.17 -> 4.13.22. The other Dependabot bumps
+  (body-parser 2.4.0, proxy-addr 2.0.8, @modelcontextprotocol/sdk 1.32.2, ip-address 10.7.6,
+  express-rate-limit 8.7.4, path-to-regexp 8.4.2, qs 6.17.1, fast-uri 3.1.9, zod 4.6.7) were
+  already in the lockfile at or above the proposed versions.
+
 ## [1.1.2] - 2026-11-26
 
 ### Fixed
