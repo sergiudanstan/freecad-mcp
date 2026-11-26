@@ -467,8 +467,7 @@ ${code}
       const filePath = escapeString(validateFilePath(args.filePath, 'filePath'));
       return bridge.run(`
 ${DOC_PREAMBLE}
-import ImportGui
-ImportGui.insert("${filePath}", doc.Name)
+Part.insert("${filePath}", doc.Name)
 doc.recompute()
 _mcp_result["result"] = {"document": doc.Name, "objects": [o.Name for o in doc.Objects], "file": "${filePath}"}
 `);

@@ -10,7 +10,7 @@ MCP (Model Context Protocol) server for FreeCAD parametric 3D CAD modeling. Prov
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) >= 18
-- [FreeCAD](https://www.freecad.org/) 0.21 or later installed
+- [FreeCAD](https://www.freecad.org/) 1.0 or later installed (the generated code follows the 1.1 API)
 
 ## Installation
 

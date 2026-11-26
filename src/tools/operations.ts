@@ -251,8 +251,7 @@ if o1 is None:
 if o2 is None:
     raise ValueError("Object not found: ${obj2}")
 fuse = doc.addObject("Part::Fuse", ${JSON.stringify(fuseName)})
-fuse.Shape1 = o1
-fuse.Shape2 = o2
+fuse.Base, fuse.Tool = o1, o2
 doc.recompute()
 _mcp_result["result"] = {"name": fuse.Name, "volume": fuse.Shape.Volume}
 `);
@@ -291,8 +290,7 @@ if o1 is None:
 if o2 is None:
     raise ValueError("Object not found: ${obj2}")
 common = doc.addObject("Part::Common", ${JSON.stringify(intName)})
-common.Shape1 = o1
-common.Shape2 = o2
+common.Base, common.Tool = o1, o2
 doc.recompute()
 _mcp_result["result"] = {"name": common.Name, "volume": common.Shape.Volume}
 `);
@@ -527,9 +525,12 @@ _mcp_result["result"] = {"name": xor.Name, "volume": xor.Shape.Volume}
       const joinName = (args.name as string) || 'JoinConnect';
       return bridge.run(`
 doc = FreeCAD.ActiveDocument
-j = doc.addObject("Part::JoinConnect", ${JSON.stringify(joinName)})
-j.Object1 = doc.getObject(${JSON.stringify(obj1)})
-j.Object2 = doc.getObject(${JSON.stringify(obj2)})
+from BOPTools import JoinFeatures
+members = [doc.getObject(n) for n in (${JSON.stringify(obj1)}, ${JSON.stringify(obj2)})]
+if None in members:
+    raise ValueError("Object not found")
+j = JoinFeatures.makeConnect(${JSON.stringify(joinName)})
+j.Objects = members
 doc.recompute()
 _mcp_result["result"] = {"name": j.Name, "volume": j.Shape.Volume}
 `);
@@ -541,9 +542,11 @@ _mcp_result["result"] = {"name": j.Name, "volume": j.Shape.Volume}
       const joinName = (args.name as string) || 'JoinCutout';
       return bridge.run(`
 doc = FreeCAD.ActiveDocument
-j = doc.addObject("Part::JoinCutout", ${JSON.stringify(joinName)})
-j.Object1 = doc.getObject(${JSON.stringify(obj1)})
-j.Object2 = doc.getObject(${JSON.stringify(obj2)})
+from BOPTools import JoinFeatures
+j = JoinFeatures.makeCutout(${JSON.stringify(joinName)})
+j.Base, j.Tool = doc.getObject(${JSON.stringify(obj1)}), doc.getObject(${JSON.stringify(obj2)})
+if j.Base is None or j.Tool is None:
+    raise ValueError("Object not found")
 doc.recompute()
 _mcp_result["result"] = {"name": j.Name, "volume": j.Shape.Volume}
 `);

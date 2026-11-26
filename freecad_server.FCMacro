@@ -27,6 +27,16 @@ _result_events = {}
 _server_running = False
 
 
+def _mcp_json(value):
+    # json.dumps cannot encode FreeCAD types. Quantities (Length, Angle, ...) become
+    # their number in internal units, vectors a list, anything else its repr.
+    if isinstance(value, FreeCAD.Units.Quantity):
+        return value.Value
+    if isinstance(value, FreeCAD.Vector):
+        return [value.x, value.y, value.z]
+    return repr(value)
+
+
 def _handle_client(conn):
     try:
         data = b''
@@ -51,7 +61,10 @@ def _handle_client(conn):
         result = _result_dict.pop(req_id, {"success": False, "error": "Timeout"})
         _result_events.pop(req_id, None)
 
-        response = json.dumps(result).encode('utf-8')
+        try:
+            response = json.dumps(result, default=_mcp_json).encode('utf-8')
+        except ValueError as err:  # e.g. a circular reference
+            response = json.dumps({"success": False, "error": "Result could not be encoded: " + str(err)}).encode('utf-8')
         conn.sendall(response)
     except Exception as e:
         try:

@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { pyBool } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -327,7 +328,7 @@ pts = [${pointsList}]
 wire = Draft.make_wire(pts, closed=${closed ? 'True' : 'False'}, face=False)
 wire.Label = ${JSON.stringify(wireName)}
 doc.recompute()
-_mcp_result["result"] = {"name": wire.Name, "label": wire.Label, "points": ${points.length}, "closed": ${closed}}
+_mcp_result["result"] = {"name": wire.Name, "label": wire.Label, "points": ${points.length}, "closed": wire.Closed}
 `);
     }
 
@@ -343,7 +344,7 @@ pts = [${pointsList}]
 bsp = Draft.make_bspline(pts, closed=${closed ? 'True' : 'False'})
 bsp.Label = ${JSON.stringify(bsName)}
 doc.recompute()
-_mcp_result["result"] = {"name": bsp.Name, "label": bsp.Label, "points": ${points.length}, "closed": ${closed}}
+_mcp_result["result"] = {"name": bsp.Name, "label": bsp.Label, "points": ${points.length}, "closed": bsp.Closed}
 `);
     }
 
@@ -479,7 +480,7 @@ objs = [${objsCode}]
 result = Draft.move(objs, FreeCAD.Vector(${x}, ${y}, ${z}), copy=${copy ? 'True' : 'False'})
 doc.recompute()
 moved = [r.Name for r in (result if isinstance(result, list) else [result])] if result else ${JSON.stringify(objectNames)}
-_mcp_result["result"] = {"moved": moved, "vector": {"x": ${x}, "y": ${y}, "z": ${z}}, "copy": ${copy}}
+_mcp_result["result"] = {"moved": moved, "vector": {"x": ${x}, "y": ${y}, "z": ${z}}, "copy": ${pyBool(copy)}}
 `);
     }
 
@@ -501,7 +502,7 @@ objs = [${objsCode}]
 result = Draft.rotate(objs, ${angle}, FreeCAD.Vector(${cx}, ${cy}, ${cz}), FreeCAD.Vector(${ax}, ${ay}, ${az}), copy=${copy ? 'True' : 'False'})
 doc.recompute()
 rotated = [r.Name for r in (result if isinstance(result, list) else [result])] if result else ${JSON.stringify(objectNames)}
-_mcp_result["result"] = {"rotated": rotated, "angle": ${angle}, "copy": ${copy}}
+_mcp_result["result"] = {"rotated": rotated, "angle": ${angle}, "copy": ${pyBool(copy)}}
 `);
     }
 
@@ -522,7 +523,7 @@ objs = [${objsCode}]
 result = Draft.scale(objs, FreeCAD.Vector(${scaleX}, ${scaleY}, ${scaleZ}), FreeCAD.Vector(${cx}, ${cy}, ${cz}), copy=${copy ? 'True' : 'False'})
 doc.recompute()
 scaled = [r.Name for r in (result if isinstance(result, list) else [result])] if result else ${JSON.stringify(objectNames)}
-_mcp_result["result"] = {"scaled": scaled, "scale": {"x": ${scaleX}, "y": ${scaleY}, "z": ${scaleZ}}, "copy": ${copy}}
+_mcp_result["result"] = {"scaled": scaled, "scale": {"x": ${scaleX}, "y": ${scaleY}, "z": ${scaleZ}}, "copy": ${pyBool(copy)}}
 `);
     }
 
@@ -538,7 +539,7 @@ if obj is None:
     raise ValueError("Object not found: ${objectName}")
 result = Draft.offset(obj, FreeCAD.Vector(${distance}, 0, 0), copy=${copy ? 'True' : 'False'})
 doc.recompute()
-_mcp_result["result"] = {"name": result.Name if result else ${JSON.stringify(objectName)}, "distance": ${distance}, "copy": ${copy}}
+_mcp_result["result"] = {"name": result.Name if result else ${JSON.stringify(objectName)}, "distance": ${distance}, "copy": ${pyBool(copy)}}
 `);
     }
 

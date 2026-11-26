@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { pyBool } from '../validation.js';
 
 export const SKETCHER_TOOLS = [
   {
@@ -463,7 +464,7 @@ bspline = Part.BSplineCurve()
 bspline.interpolate(pts, PeriodicFlag=${closed ? 'True' : 'False'})
 idx = sketch.addGeometry(bspline)
 doc.recompute()
-_mcp_result["result"] = {"sketchName": sketch.Name, "geometryIndex": idx, "points": ${points.length}, "closed": ${closed}}
+_mcp_result["result"] = {"sketchName": sketch.Name, "geometryIndex": idx, "points": ${points.length}, "closed": ${pyBool(closed)}}
 `);
     }
 
@@ -582,7 +583,8 @@ _mcp_result["result"] = {"sketchName": sketch.Name, "external": ${JSON.stringify
       return bridge.run(`
 doc = FreeCAD.ActiveDocument
 sketch = doc.getObject(${JSON.stringify(sketchName)})
-idx = sketch.fillet(${vertexIndex}, ${radius})
+geo_id, pos_id = sketch.getGeoVertexIndex(${vertexIndex})
+idx = sketch.fillet(geo_id, pos_id, ${radius})
 doc.recompute()
 _mcp_result["result"] = {"sketchName": sketch.Name, "filletIndex": idx, "radius": ${radius}}
 `);

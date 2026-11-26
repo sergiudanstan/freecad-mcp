@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-26
+
+### Fixed
+FreeCAD 1.x API, checked against the FreeCAD 1.1.4 sources:
+- Results containing FreeCAD quantities or vectors are encoded as numbers and lists by both
+  the headless bridge and the socket macro, instead of failing in `json.dumps`.
+- Assembly joints are `JointObject` proxies created in the assembly's JointGroup; grounding
+  uses `GroundedJoint`; a distance is set before the joint is solved; `freecad_assembly_solve`
+  now calls `assembly.solve()` and reports the solver status.
+- `freecad_boolean_fuse` and `freecad_boolean_intersect` link `Base`/`Tool`;
+  `freecad_join_connect` and `freecad_join_cutout` use `BOPTools.JoinFeatures`.
+- `freecad_fem_mesh` sets `Shape` (renamed from `Part` in 1.0) and counts elements from
+  `EdgeCount`/`FaceCount`/`VolumeCount`; the CalculiX solver uses `makeSolverCalculiXCcxTools`.
+- `freecad_arch_stairs` passes steps, height, width and name to `Arch.makeStairs`;
+  `freecad_export_ifc` uses `importers.exportIFC`.
+- `freecad_surface_filling` sets `BoundaryEdges`, `freecad_surface_geomfill` sets `BoundaryList`.
+- `freecad_pad` with `symmetric` sets `SideType = "Symmetric"`.
+- `freecad_partdesign_fillet` and `freecad_partdesign_chamfer` create the feature in the
+  object's Body and say so when the object is not in one.
+- `freecad_sketch_fillet` maps `vertexIndex` with `getGeoVertexIndex` before calling
+  `Sketch.fillet(geoId, pos, radius)`.
+- `freecad_import_iges` reads through `Part.insert`, so it works without the GUI.
+- Result dictionaries no longer contain JavaScript `true`/`false`.
+
+### Changed
+- FreeCAD 1.0 or later is required (was 0.21).
+
+### Added
+- Offline tests that check the generated Python against the 1.x API.
+
 ## [1.1.3] - 2026-11-26
 
 ### Security

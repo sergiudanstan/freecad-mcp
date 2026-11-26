@@ -338,10 +338,7 @@ _mcp_result["result"] = {"name": roof.Name, "label": roof.Label, "angle": ${angl
       return bridge.run(`
 ${DOC_PREAMBLE}
 import Arch
-stairs = Arch.makeStairs(${numberOfSteps})
-stairs.Label = ${JSON.stringify(stairsName)}
-stairs.Height = ${totalHeight}
-stairs.Width = ${width}
+stairs = Arch.makeStairs(steps=${numberOfSteps}, height=${totalHeight}, width=${width}, name=${JSON.stringify(stairsName)})
 doc.recompute()
 _mcp_result["result"] = {"name": stairs.Name, "label": stairs.Label, "steps": ${numberOfSteps}, "height": ${totalHeight}, "width": ${width}}
 `);
@@ -352,11 +349,11 @@ _mcp_result["result"] = {"name": stairs.Name, "label": stairs.Label, "steps": ${
       const objectNames = args.objectNames as string[] | undefined;
       return bridge.run(`
 ${DOC_PREAMBLE}
-import importIFC
+from importers import exportIFC  # needs IfcOpenShell
 ${objectNames
   ? `objs = [doc.getObject(n) for n in ${JSON.stringify(objectNames)} if doc.getObject(n)]`
   : `objs = doc.Objects`}
-importIFC.export(objs, ${JSON.stringify(filePath)})
+exportIFC.export(objs, ${JSON.stringify(filePath)})
 import os
 _mcp_result["result"] = {"filePath": ${JSON.stringify(filePath)}, "objectCount": len(objs), "size_bytes": os.path.getsize(${JSON.stringify(filePath)})}
 `);

@@ -115,6 +115,24 @@ import Part
 
 MARKER = "${RESULT_MARKER}"
 
+
+def _mcp_json(value):
+    # json.dumps cannot encode FreeCAD types. Quantities (Length, Angle, ...) become
+    # their number in internal units, vectors a list, anything else its repr.
+    if isinstance(value, FreeCAD.Units.Quantity):
+        return value.Value
+    if isinstance(value, FreeCAD.Vector):
+        return [value.x, value.y, value.z]
+    return repr(value)
+
+
+def _mcp_encode(result):
+    try:
+        return json.dumps(result, default=_mcp_json)
+    except ValueError as err:  # e.g. a circular reference
+        return json.dumps({"success": False, "error": "Result could not be encoded: " + str(err)})
+
+
 print("__MCP_READY__", flush=True)
 
 while True:
@@ -142,7 +160,7 @@ while True:
             _mcp_result = {"success": False, "error": str(e)}
 
         print(MARKER, flush=True)
-        print(json.dumps(_mcp_result), flush=True)
+        print(_mcp_encode(_mcp_result), flush=True)
         print(MARKER + "END", flush=True)
     except Exception as e:
         print(MARKER, flush=True)

@@ -5,6 +5,11 @@
  * and file path traversal prevention for all tool inputs.
  */
 
+/** A JavaScript boolean as a Python literal, for code sent to FreeCAD. */
+export function pyBool(value: unknown): 'True' | 'False' {
+  return value ? 'True' : 'False';
+}
+
 const MAX_DIMENSION = 1e6; // 1,000,000 mm = 1 km
 const MAX_STRING_LENGTH = 1024;
 const MAX_OBJECT_NAME_LENGTH = 256;

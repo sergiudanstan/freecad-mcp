@@ -367,7 +367,7 @@ if sketch not in body.Group:
 pad = doc.addObject("PartDesign::Pad", ${JSON.stringify(padName)})
 pad.Profile = sketch
 pad.Length = ${length}
-pad.Symmetric = ${symmetric ? 'True' : 'False'}
+pad.SideType = ${JSON.stringify(symmetric ? 'Symmetric' : 'One side')}
 pad.Reversed = ${reversed ? 'True' : 'False'}
 body.addObject(pad)
 doc.recompute()
@@ -440,7 +440,7 @@ loft = doc.addObject("Part::Loft", ${JSON.stringify(loftName)})
 loft.Sections = ${sectionsCode}
 loft.Solid = ${solid ? 'True' : 'False'}
 doc.recompute()
-_mcp_result["result"] = {"name": loft.Name, "sections": ${JSON.stringify(sketchNames)}, "solid": ${solid}, "type": loft.TypeId}
+_mcp_result["result"] = {"name": loft.Name, "sections": ${JSON.stringify(sketchNames)}, "solid": loft.Solid, "type": loft.TypeId}
 `);
     }
 
@@ -471,8 +471,13 @@ _mcp_result["result"] = {"name": sweep.Name, "profile": ${JSON.stringify(profile
       return bridge.run(`
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
+if obj is None:
+    raise ValueError("Object not found: ${objectName}")
+body = obj.getParentGeoFeatureGroup()
+if body is None or body.TypeId != "PartDesign::Body":
+    raise ValueError(obj.Name + " is not in a PartDesign Body; use the Part tools for loose solids")
 edges = ${edgesCode}
-fillet = doc.addObject("PartDesign::Fillet", ${JSON.stringify(filletName)})
+fillet = body.newObject("PartDesign::Fillet", ${JSON.stringify(filletName)})
 fillet.Base = (obj, edges)
 fillet.Radius = ${radius}
 doc.recompute()
@@ -491,8 +496,13 @@ _mcp_result["result"] = {"name": fillet.Name, "radius": fillet.Radius, "edges": 
       return bridge.run(`
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
+if obj is None:
+    raise ValueError("Object not found: ${objectName}")
+body = obj.getParentGeoFeatureGroup()
+if body is None or body.TypeId != "PartDesign::Body":
+    raise ValueError(obj.Name + " is not in a PartDesign Body; use the Part tools for loose solids")
 edges = ${edgesCode}
-cham = doc.addObject("PartDesign::Chamfer", ${JSON.stringify(chamferName)})
+cham = body.newObject("PartDesign::Chamfer", ${JSON.stringify(chamferName)})
 cham.Base = (obj, edges)
 cham.Size = ${size}
 doc.recompute()
