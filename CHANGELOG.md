@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-26
+
+### Fixed
+- README per-module tool table summed to 150 while the intro and `package.json` said 165; the
+  counts now match the tool arrays in the code (Import/Export 17, Part Design 20, Sketcher 16,
+  Draft 17, and so on).
+- The headless FreeCAD binary no longer defaults only to the macOS app path: `FREECAD_CMD` if set,
+  else `freecadcmd` on `PATH`, else the macOS path (unchanged on macOS).
+
+### Added
+- Tests that fail if the README table drifts from the code, and for the binary resolution.
+
 ## [1.1.1] - 2026-11-25
 
 ### Fixed
@@ -55,6 +67,7 @@ headless; the code itself is unchanged from the 1.0.0 source release below.
 - Added file path traversal prevention for import/export operations
 - Added security warning to `freecad_execute_python` tool description
 
-[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/sergiudanstan/freecad-mcp/releases/tag/v1.1.1
 [1.1.0]: https://github.com/sergiudanstan/freecad-mcp/releases/tag/v1.1.0
