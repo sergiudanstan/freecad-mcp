@@ -292,22 +292,21 @@ obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
     raise ValueError("Object not found: ${objectName}")
 mesh = ObjectsFem.makeMeshGmsh(doc, ${JSON.stringify(meshName)})
-mesh.Part = obj
+mesh.Shape = obj  # 'Part' was renamed to 'Shape' in FreeCAD 1.0
 ${maxSize > 0 ? `mesh.CharacteristicLengthMax = ${maxSize}` : ''}
 ${minSize > 0 ? `mesh.CharacteristicLengthMin = ${minSize}` : ''}
 mesh.ElementOrder = ${JSON.stringify(meshOrder === 1 ? '1st' : '2nd')}
 analysis.addObject(mesh)
 doc.recompute()
-# Try to compute the mesh
+# Gmsh raises on failure; the bridge reports the message.
 from femmesh.gmshtools import GmshTools
-gmsh = GmshTools(mesh)
-error = gmsh.create_mesh()
+GmshTools(mesh).create_mesh()
 doc.recompute()
 fem_mesh = mesh.FemMesh
 _mcp_result["result"] = {
     "name": mesh.Name,
     "nodes": fem_mesh.NodeCount,
-    "elements": fem_mesh.ElementCount,
+    "elements": fem_mesh.EdgeCount + fem_mesh.FaceCount + fem_mesh.VolumeCount,
     "volumes": fem_mesh.VolumeCount,
     "order": ${meshOrder}
 }
@@ -327,7 +326,7 @@ analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
     raise ValueError("Analysis not found: ${analysisName}")
 ${solver === 'calculix'
-  ? `solver = ObjectsFem.makeSolverCalculixCcxTools(doc, ${JSON.stringify(solverName)})`
+  ? `solver = ObjectsFem.makeSolverCalculiXCcxTools(doc, ${JSON.stringify(solverName)})`
   : `solver = ObjectsFem.makeSolverElmer(doc, ${JSON.stringify(solverName)})`}
 solver.AnalysisType = ${JSON.stringify(analysisType)}
 analysis.addObject(solver)

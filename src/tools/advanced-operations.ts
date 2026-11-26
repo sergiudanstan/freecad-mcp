@@ -342,7 +342,7 @@ ext.Base = obj
 ext.Dir = FreeCAD.Vector(${dirX}, ${dirY}, ${dirZ})
 ext.Solid = ${solid ? 'True' : 'False'}
 doc.recompute()
-_mcp_result["result"] = {"name": ext.Name, "direction": {"x": ${dirX}, "y": ${dirY}, "z": ${dirZ}}, "solid": ${solid}, "volume": ext.Shape.Volume}
+_mcp_result["result"] = {"name": ext.Name, "direction": {"x": ${dirX}, "y": ${dirY}, "z": ${dirZ}}, "solid": ext.Solid, "volume": ext.Shape.Volume}
 `);
     }
 

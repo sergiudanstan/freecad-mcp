@@ -154,7 +154,10 @@ export const ASSEMBLY_TOOLS = [
   },
 ];
 
-// Helper to create joint Python code
+// FreeCAD 1.x stores joints as App::FeaturePython objects driven by JointObject.Joint,
+// inside the assembly's JointGroup (see Mod/Assembly/AssemblyTests/TestCore.py).
+// A reference is [object, [element, anchor]]; repeating the element as the anchor
+// places the joint at the element's centre (UtilsAssembly.findPlacement).
 function makeJointCode(
   jointType: string,
   assemblyName: string,
@@ -167,25 +170,25 @@ function makeJointCode(
 ): string {
   return `
 ${DOC_PREAMBLE}
+import JointObject
+import UtilsAssembly
 assembly = doc.getObject(${JSON.stringify(assemblyName)})
 if assembly is None:
     raise ValueError("Assembly not found: ${assemblyName}")
-c1 = doc.getObject(${JSON.stringify(comp1)})
-c2 = doc.getObject(${JSON.stringify(comp2)})
-if c1 is None:
-    raise ValueError("Component not found: ${comp1}")
-if c2 is None:
-    raise ValueError("Component not found: ${comp2}")
-joint = doc.addObject("Assembly::Joint${jointType}", ${JSON.stringify(jointName)})
-joint.ObjectToGround = c1
-joint.Part1 = c1
-joint.Element1 = ${JSON.stringify(elem1)}
-joint.Part2 = c2
-joint.Element2 = ${JSON.stringify(elem2)}
+parts = {}
+for key, part_name in (("c1", ${JSON.stringify(comp1)}), ("c2", ${JSON.stringify(comp2)})):
+    parts[key] = doc.getObject(part_name)
+    if parts[key] is None:
+        raise ValueError("Component not found: " + part_name)
+joint = UtilsAssembly.getJointGroup(assembly).newObject("App::FeaturePython", ${JSON.stringify(jointName)})
+JointObject.Joint(joint, JointObject.JointTypes.index(${JSON.stringify(jointType)}))
 ${extraProps}
-assembly.addObject(joint)
+joint.Proxy.setJointConnectors(joint, [
+    [parts["c1"], [${JSON.stringify(elem1)}, ${JSON.stringify(elem1)}]],
+    [parts["c2"], [${JSON.stringify(elem2)}, ${JSON.stringify(elem2)}]],
+])
 doc.recompute()
-_mcp_result["result"] = {"name": joint.Name, "type": "${jointType}", "component1": ${JSON.stringify(comp1)}, "component2": ${JSON.stringify(comp2)}}
+_mcp_result["result"] = {"name": joint.Name, "type": joint.JointType, "component1": ${JSON.stringify(comp1)}, "component2": ${JSON.stringify(comp2)}}
 `;
 }
 
@@ -239,10 +242,10 @@ if assembly is None:
 comp = doc.getObject(${JSON.stringify(componentName)})
 if comp is None:
     raise ValueError("Component not found: ${componentName}")
-# Create a grounded joint
-grounded = doc.addObject("Assembly::JointFixed", "Grounded_" + comp.Name)
-grounded.ObjectToGround = comp
-assembly.addObject(grounded)
+import JointObject
+import UtilsAssembly
+grounded = UtilsAssembly.getJointGroup(assembly).newObject("App::FeaturePython", "Grounded_" + comp.Name)
+JointObject.GroundedJoint(grounded, comp)
 doc.recompute()
 _mcp_result["result"] = {"name": grounded.Name, "component": comp.Name, "grounded": True}
 `);
@@ -316,10 +319,12 @@ ${DOC_PREAMBLE}
 assembly = doc.getObject(${JSON.stringify(assemblyName)})
 if assembly is None:
     raise ValueError("Assembly not found: ${assemblyName}")
+import UtilsAssembly
+solver_status = assembly.solve()
 doc.recompute()
-joints = [o for o in assembly.Group if "Joint" in o.TypeId]
+joints = [o for o in UtilsAssembly.getJointGroup(assembly).Group if hasattr(o, "JointType")]
 components = [o for o in assembly.Group if o.TypeId == "App::Link"]
-_mcp_result["result"] = {"assembly": assembly.Name, "joints": len(joints), "components": len(components), "status": "solved"}
+_mcp_result["result"] = {"assembly": assembly.Name, "joints": len(joints), "components": len(components), "status": "solved" if solver_status == 0 else "failed", "solverCode": solver_status}
 `);
     }
 

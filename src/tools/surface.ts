@@ -110,7 +110,7 @@ obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
     raise ValueError("Object not found: ${objectName}")
 fill = doc.addObject("Surface::Filling", ${JSON.stringify(fillName)})
-fill.BoundEdges = [${edgeRefs}]
+fill.BoundaryEdges = [${edgeRefs}]
 doc.recompute()
 _mcp_result["result"] = {"name": fill.Name, "edges": ${JSON.stringify(edgeNames)}}
 `);
@@ -123,7 +123,7 @@ _mcp_result["result"] = {"name": fill.Name, "edges": ${JSON.stringify(edgeNames)
       return bridge.run(`
 ${DOC_PREAMBLE}
 gf = doc.addObject("Surface::GeomFillSurface", ${JSON.stringify(gfName)})
-gf.BoundEdges = [${edgeRefs}]
+gf.BoundaryList = [${edgeRefs}]
 doc.recompute()
 _mcp_result["result"] = {"name": gf.Name, "edgeCount": ${edges.length}}
 `);
