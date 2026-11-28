@@ -9,7 +9,7 @@ network listener of its own.
 
 | Version | Supported |
 |---|---|
-| 1.3.x | Current |
+| 2.0.x | Current |
 
 Single maintainer; only the latest release receives fixes.
 
