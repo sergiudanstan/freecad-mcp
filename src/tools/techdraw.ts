@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validateToolArgs } from '../validation.js';
+import { validateFilePath, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -264,7 +264,7 @@ _mcp_result["result"] = {"name": dim.Name, "type": ${JSON.stringify(dimensionTyp
 
     case 'freecad_techdraw_export_svg': {
       const pageName = args.pageName as string;
-      const filePath = args.filePath as string;
+      const filePath = validateFilePath(args.filePath, 'filePath');
       return bridge.run(`
 ${DOC_PREAMBLE}
 import TechDraw
@@ -280,7 +280,7 @@ _mcp_result["result"] = {"page": page.Name, "filePath": ${JSON.stringify(filePat
 
     case 'freecad_techdraw_export_dxf': {
       const pageName = args.pageName as string;
-      const filePath = args.filePath as string;
+      const filePath = validateFilePath(args.filePath, 'filePath');
       return bridge.run(`
 ${DOC_PREAMBLE}
 import TechDraw

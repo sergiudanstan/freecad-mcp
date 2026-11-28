@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validatePositiveNumber, validateNonNegativeNumber, validateNumber, validateString, escapePythonString, validateToolArgs } from '../validation.js';
+import { validatePositiveNumber, validateNonNegativeNumber, validateNumber, escapePythonString, validateToolArgs } from '../validation.js';
 
 export const PRIMITIVE_TOOLS = [
   {

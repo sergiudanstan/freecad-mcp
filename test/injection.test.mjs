@@ -477,13 +477,26 @@ test('injection: quoted string values preserved', async () => {
 });
 
 // ---------------------------------------------------------------- valid-args tests
+// 3.0.0 applies validateFilePath (absolute path, no `..`, no system folders) to the path properties
+// that did not have it. Their relative-path variants (dashed 'my-part', dotted 'Box.Face1', long 'xxx…')
+// were accepted on the baseline and are rejected on purpose now; every other call is unchanged.
+const PATH_POLICY_TOOLS = [
+  'freecad_draft_shapestring', 'freecad_export_ifc', 'freecad_open_document',
+  'freecad_save_document', 'freecad_techdraw_export_dxf', 'freecad_techdraw_export_svg',
+];
+const INTENDED_REJECTIONS = new Set(
+  PATH_POLICY_TOOLS.flatMap((t) => ['dashed', 'dotted', 'long'].map((v) => `${t}|${v}`)),
+);
+
 test('valid args: no new rejections', async () => {
   const { names } = await load();
   const rejected = sortedUnique((await runCorpus()).filter((r) => r.rejected).map((r) => r.key));
   report('FREECAD_MCP_VALID_ARGS_REPORT', rejected);
   const baseline = new Set(readFixture('valid-args-baseline.json').filter((k) => names.has(toolOf(k))));
-  const fresh = rejected.filter((k) => !baseline.has(k));
+  const fresh = rejected.filter((k) => !baseline.has(k) && !INTENDED_REJECTIONS.has(k));
   if (fresh.length) assert.fail(`valid arguments newly rejected (${fresh.length}):\nNEW_REJECTIONS=${JSON.stringify(fresh)}`);
+  const notRejected = [...INTENDED_REJECTIONS].filter((k) => !rejected.includes(k));
+  if (notRejected.length) assert.fail(`relative paths accepted where validateFilePath applies:\nNOT_REJECTED=${JSON.stringify(notRejected)}`);
 });
 
 test('valid args: same python as baseline', async () => {
@@ -499,7 +512,7 @@ test('valid args: same python as baseline', async () => {
   const sorted = Object.fromEntries(Object.keys(hashes).sort().map((k) => [k, hashes[k]]));
   report('FREECAD_MCP_VALID_ARGS_PYTHON_REPORT', sorted);
   const fixture = readFixture('valid-args-python.json');
-  const changed = Object.keys(fixture).filter((k) => names.has(toolOf(k)) && hashes[k] !== fixture[k]);
+  const changed = Object.keys(fixture).filter((k) => names.has(toolOf(k)) && !INTENDED_REJECTIONS.has(k) && hashes[k] !== fixture[k]);
   if (changed.length) {
     assert.fail([
       `generated Python differs from the baseline for ${changed.length} valid calls: ${changed.slice(0, 20).join(', ')}`,

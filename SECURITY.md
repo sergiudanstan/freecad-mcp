@@ -9,7 +9,7 @@ network listener of its own.
 
 | Version | Supported |
 |---|---|
-| 2.0.x | Current |
+| 3.0.x | Current |
 
 Single maintainer; only the latest release receives fixes.
 
@@ -39,12 +39,12 @@ What this server can reach, and what that means:
   documents or prompts. A report that `freecad_execute_python` can execute code is not a
   vulnerability; a way to run code *without* calling it, from input that should be inert,
   is in scope.
-- **File system.** Import/export tools read and write files at paths the client supplies.
-  `validateFilePath` (in `src/validation.ts`) requires absolute paths and rejects `..`
+- **File system.** The tools that open, save, import or export files, or read a font, use
+  paths the client supplies. Every such path (`filePath`, `fontFile`) goes through
+  `validateFilePath` (in `src/validation.ts`), which requires absolute paths and rejects `..`
   traversal, null bytes and `/etc/`, `/proc/`, `/sys/`, `/dev/`, `/var/run/`, `/var/log/`.
-  It is a guard against mistakes, not a sandbox: it is not an allow-list, it is applied by
-  the import/export handlers rather than uniformly, and `freecad_execute_python` can read
-  and write anything the FreeCAD user can.
+  It is a guard against mistakes, not a sandbox: it is not an allow-list, and
+  `freecad_execute_python` can read and write anything the FreeCAD user can.
 - **Input handling.** Every tool handler (`handle*Tool` in `src/tools/`) first validates its
   arguments against the tool's `inputSchema` (`validateToolArgs` in `src/validation.ts`):
   required properties present, strict types (`number`/`integer` finite, `boolean` a real
@@ -67,12 +67,15 @@ What this server can reach, and what that means:
   or wrong. Each refused request that sent data leaves a warning in the FreeCAD report view,
   without the token; an empty connection (the bridge's mode detection) leaves none. This keeps other local users out; it does not protect against other processes
   running as your own user, which can read the token file. The macro serves one connection
-  at a time, so a local client that connects and stays silent blocks it until it goes away.
+  at a time; a client that sends nothing for 10 seconds is disconnected, so it cannot block
+  the macro. A request that is still queued when its 30-second timeout passes is discarded
+  and never runs; code that FreeCAD has already started cannot be stopped and finishes, but
+  its result is dropped.
 - **Temporary files.** Headless mode writes its REPL script into a private folder created
   with `mkdtemp` in the system temporary directory (mode 0700, the file created exclusively
   with mode 0600, one folder per server instance) and runs it with `freecadcmd`. The folder
-  is removed by `FreeCADBridge.destroy()`; the stdio server does not call it on exit, so a
-  private `freecad-mcp-*` folder can be left in the temporary directory. A call that times out kills the headless FreeCAD
+  is removed, and the headless FreeCAD process stopped, when the server exits: on a signal,
+  when the client closes stdin, or on a normal exit. A call that times out kills the headless FreeCAD
   process; the next call starts a new one, and documents that were not saved are lost.
 
 In scope: bypasses of the documented validation, code or file access reachable from input

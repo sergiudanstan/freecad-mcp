@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-28
+
+Major version: file paths must now be absolute in every tool that takes one.
+
+### Security
+- `validateFilePath` (absolute path, no `..`, no null bytes, no `/etc/`, `/proc/`, `/sys/`, `/dev/`,
+  `/var/run/`, `/var/log/`) now applies to every path argument: `freecad_open_document`,
+  `freecad_save_document`, `freecad_export_ifc`, `freecad_techdraw_export_svg`,
+  `freecad_techdraw_export_dxf` (`filePath`) and `freecad_draft_shapestring` (`fontFile`).
+- `freecad_server.FCMacro`: a client that connects and sends nothing for 10 s is disconnected, so it can
+  no longer block the macro, which serves one connection at a time.
+- `freecad_server.FCMacro`: a request still queued when its 30 s timeout passes is discarded instead of
+  running later; request ids come from a counter instead of `id()`, which can be reused.
+
+### Fixed
+- The stdio server stops the headless FreeCAD process and removes its private REPL folder when it exits
+  (signal, stdin closed by the client, or normal exit); before, the folder stayed in the temporary directory.
+- Unused imports in `mesh.ts`, `operations.ts` and `primitives.ts` (CodeQL).
+
+### Tests
+- `test/hardening.test.mjs`: every handler runs `validateToolArgs` first (a handler without it fails, even
+  when its own code is inert); path rules on the six path properties; cleanup on exit; prototype keys;
+  the version in `src/index.ts` matches `package.json`.
+- `test/macro.test.mjs`: a silent client does not block other requests; an expired request is never run.
+
 ## [2.0.0] - 2026-11-28
 
 Major version: strict argument validation and the macro token break older clients and macros
@@ -146,7 +171,8 @@ headless; the code itself is unchanged from the 1.0.0 source release below.
 - Added file path traversal prevention for import/export operations
 - Added security warning to `freecad_execute_python` tool description
 
-[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/sergiudanstan/freecad-mcp/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.2...v1.1.3

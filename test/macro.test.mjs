@@ -156,9 +156,14 @@ function canConnect(port) {
 }
 
 // Starts the macro under python3 with fake FreeCAD modules; resolves once the port accepts connections.
-async function startMacro(home = mkTmp('fcmcp-home-')) {
-  const src = fs.readFileSync(MACRO, 'utf8');
+// `lines` replaces whole literal lines of the macro (e.g. a shorter timeout), like the port line.
+async function startMacro(home = mkTmp('fcmcp-home-'), lines = {}) {
+  let src = fs.readFileSync(MACRO, 'utf8');
   assert.ok(src.includes(PORT_LINE), `harness: macro has no literal line "${PORT_LINE}"`);
+  for (const [from, to] of Object.entries(lines)) {
+    assert.ok(src.includes(from), `harness: macro has no literal line "${from}"`);
+    src = src.replace(from, to);
+  }
   const port = await freePort();
   const fakes = writeFakes();
   const patched = path.join(mkTmp('fcmcp-src-'), 'macro.py');
@@ -371,5 +376,43 @@ test('macro: logs rejected requests', async () => {
     assert.equal(ok.success, true, `unexpected response: ${JSON.stringify(ok)}`);
     await sleep(300);
     assert.equal(count(), 2, `warnings after a valid request: ${count()}`);
+  } finally { m.stop(); }
+});
+
+// A client that connects and stays silent must not block the macro (it serves one connection at a
+// time): with the idle timeout set to 1 s, a valid request sent behind it is answered within 6 s.
+test('macro: a silent client does not block other requests', async () => {
+  const m = await startMacro(undefined, { 'MCP_CLIENT_IDLE_TIMEOUT = 10': 'MCP_CLIENT_IDLE_TIMEOUT = 1' });
+  const silent = net.connect({ port: m.port, host: '127.0.0.1' });
+  silent.on('error', () => {});
+  try {
+    const token = await readToken(m.home);
+    await new Promise((resolve) => silent.once('connect', resolve));
+    const started = Date.now();
+    const res = parse(await request(m.port, frame(`__MCP_AUTH__:${token}`, '_mcp_result["result"] = 3')));
+    assert.equal(res.success, true, `unexpected response: ${JSON.stringify(res)}`);
+    assert.equal(res.result, 3);
+    assert.ok(Date.now() - started < 6000, `answered after ${Date.now() - started} ms`);
+  } finally { silent.destroy(); m.stop(); }
+});
+
+// A request whose caller has timed out before FreeCAD started it must never run. With the execution
+// timeout at 1 s: request A keeps the main thread busy for 3 s (it times out while running), request B
+// is queued behind it, times out before it starts, and must not create its sentinel afterwards.
+test('macro: a request that timed out before it started is never run', async () => {
+  const m = await startMacro(undefined, { 'MCP_EXEC_TIMEOUT = 30': 'MCP_EXEC_TIMEOUT = 1' });
+  try {
+    const token = await readToken(m.home);
+    const a = parse(await request(m.port, frame(`__MCP_AUTH__:${token}`, 'import time\ntime.sleep(3)\n_mcp_result["result"] = "a"')));
+    assert.equal(a.success, false);
+    assert.match(a.error, /still running/, `request A: ${JSON.stringify(a)}`);
+    const sentinel = path.join(m.home, 'sentinel-expired');
+    const b = parse(await request(m.port, frame(`__MCP_AUTH__:${token}`, sentinelCode(sentinel))));
+    assert.equal(b.success, false);
+    assert.match(b.error, /not run/, `request B: ${JSON.stringify(b)}`);
+    await sleep(3000); // A finishes; the main thread then reaches B in the queue
+    assert.equal(fs.existsSync(sentinel), false, 'the expired request was run after its caller gave up');
+    const c = parse(await request(m.port, frame(`__MCP_AUTH__:${token}`, '_mcp_result["result"] = "c"')));
+    assert.equal(c.result, 'c', `request C after the expired ones: ${JSON.stringify(c)}`);
   } finally { m.stop(); }
 });

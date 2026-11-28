@@ -88,7 +88,7 @@ export class FreeCADBridge {
     if (!token) {
       return {
         success: false,
-        error: `FreeCAD GUI token not found at ${tokenPath()}; restart freecad_server.FCMacro (2.0.0 or later)`,
+        error: `FreeCAD GUI token not found at ${tokenPath()}; restart freecad_server.FCMacro (3.0.0 or later)`,
       };
     }
 
