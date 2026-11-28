@@ -10,6 +10,7 @@ import socket
 import threading
 import json
 import queue
+import itertools
 import os
 import time
 import hmac
@@ -24,6 +25,8 @@ except ImportError:
     from PySide2 import QtCore
 
 MCP_PORT = 12345
+MCP_EXEC_TIMEOUT = 30
+MCP_CLIENT_IDLE_TIMEOUT = 10
 MCP_MAX_REQUEST_BYTES = 10485760
 MCP_END = b'\n__MCP_END__\n'
 MCP_AUTH_PREFIX = b'__MCP_AUTH__:'
@@ -31,6 +34,12 @@ MCP_TOKEN_DIR = os.path.join(os.path.expanduser('~'), '.freecad-mcp')
 MCP_TOKEN_FILE = os.path.join(MCP_TOKEN_DIR, 'token')
 
 _cmd_queue = queue.Queue()
+# Request ids come from a counter, not id(): an id() can be reused after a request is gone.
+_req_ids = itertools.count(1)
+# _result_events holds the requests whose caller is still waiting; _started the ones the main thread
+# has begun to run. Both are read and changed under _state_lock.
+_state_lock = threading.Lock()
+_started = set()
 _result_dict = {}
 _result_events = {}
 _server_running = False
@@ -85,6 +94,9 @@ def _reject_oversized(conn):
 
 def _handle_client(conn, token):
     try:
+        # A client that connects and then stays silent would block the macro, which serves one
+        # connection at a time; drop it after MCP_CLIENT_IDLE_TIMEOUT seconds without data.
+        conn.settimeout(MCP_CLIENT_IDLE_TIMEOUT)
         data = bytearray()
         while True:
             chunk = conn.recv(65536)
@@ -108,15 +120,26 @@ def _handle_client(conn, token):
         code = code.decode('utf-8')
 
         event = threading.Event()
-        req_id = id(event)
-        _result_events[req_id] = event
+        req_id = next(_req_ids)
+        with _state_lock:
+            _result_events[req_id] = event
 
         _cmd_queue.put((req_id, code))
 
-        event.wait(timeout=30)
+        event.wait(timeout=MCP_EXEC_TIMEOUT)
 
-        result = _result_dict.pop(req_id, {"success": False, "error": "Timeout"})
-        _result_events.pop(req_id, None)
+        # From here on the main thread skips this request if it has not started it yet, and drops
+        # its result if it is still running.
+        with _state_lock:
+            _result_events.pop(req_id, None)
+            result = _result_dict.pop(req_id, None)
+            was_started = req_id in _started
+            _started.discard(req_id)
+        if result is None:
+            if was_started:
+                result = {"success": False, "error": "Timeout after %ss: the code is still running in FreeCAD" % MCP_EXEC_TIMEOUT}
+            else:
+                result = {"success": False, "error": "Timeout after %ss: FreeCAD was busy and the code was not run" % MCP_EXEC_TIMEOUT}
 
         try:
             response = json.dumps(result, default=_mcp_json).encode('utf-8')
@@ -173,6 +196,10 @@ def _process_queue():
     while not _cmd_queue.empty():
         try:
             req_id, code = _cmd_queue.get_nowait()
+            with _state_lock:
+                if req_id not in _result_events:
+                    continue  # the caller timed out before it started: never run it
+                _started.add(req_id)
             _mcp_result = {"success": True}
             exec_globals = dict(globals())
             exec_globals["_mcp_result"] = _mcp_result
@@ -182,8 +209,12 @@ def _process_queue():
             except Exception as e:
                 _mcp_result = {"success": False, "error": str(e)}
 
-            _result_dict[req_id] = _mcp_result
-            _result_events[req_id].set()
+            with _state_lock:
+                _started.discard(req_id)
+                event = _result_events.get(req_id)
+                if event is not None:
+                    _result_dict[req_id] = _mcp_result
+                    event.set()
         except queue.Empty:
             break
 

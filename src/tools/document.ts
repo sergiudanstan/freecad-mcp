@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validateToolArgs } from '../validation.js';
+import { validateFilePath, validateToolArgs } from '../validation.js';
 
 export const DOCUMENT_TOOLS = [
   {
@@ -88,7 +88,7 @@ _mcp_result["result"] = {"name": doc.Name}
     }
 
     case 'freecad_open_document': {
-      const filePath = args.filePath as string;
+      const filePath = validateFilePath(args.filePath, 'filePath');
       return bridge.run(`
 doc = FreeCAD.openDocument(${JSON.stringify(filePath)})
 _mcp_result["result"] = {"name": doc.Name, "objects": len(doc.Objects)}
@@ -96,7 +96,7 @@ _mcp_result["result"] = {"name": doc.Name, "objects": len(doc.Objects)}
     }
 
     case 'freecad_save_document': {
-      const filePath = args.filePath as string | undefined;
+      const filePath = args.filePath === undefined ? undefined : validateFilePath(args.filePath, 'filePath');
       if (filePath) {
         return bridge.run(`
 doc = FreeCAD.ActiveDocument

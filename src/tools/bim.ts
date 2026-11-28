@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validateToolArgs } from '../validation.js';
+import { validateFilePath, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -347,7 +347,7 @@ _mcp_result["result"] = {"name": stairs.Name, "label": stairs.Label, "steps": ${
     }
 
     case 'freecad_export_ifc': {
-      const filePath = args.filePath as string;
+      const filePath = validateFilePath(args.filePath, 'filePath');
       const objectNames = args.objectNames as string[] | undefined;
       return bridge.run(`
 ${DOC_PREAMBLE}

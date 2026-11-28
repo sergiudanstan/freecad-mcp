@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { pyBool, validatePositiveNumber, validateNonNegativeNumber, validateNumber, validateString, validateToolArgs } from '../validation.js';
+import { pyBool, validatePositiveNumber, validateNumber, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:

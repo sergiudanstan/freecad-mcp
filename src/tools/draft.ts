@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { pyBool, validateToolArgs } from '../validation.js';
+import { pyBool, validateFilePath, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -442,7 +442,7 @@ _mcp_result["result"] = {"name": clone.Name, "label": clone.Label, "sources": ${
     case 'freecad_draft_shapestring': {
       const text = args.text as string;
       const size = (args.size as number) ?? 10;
-      const fontFile = args.fontFile as string | undefined;
+      const fontFile = args.fontFile === undefined ? undefined : validateFilePath(args.fontFile, 'fontFile');
       const x = (args.x as number) ?? 0;
       const y = (args.y as number) ?? 0;
       const z = (args.z as number) ?? 0;

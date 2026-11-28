@@ -21,9 +21,14 @@ npm install
 npm run build
 ```
 
-### Upgrading from 1.x
+### Upgrading
 
-2.0.0 has two breaking changes:
+**From 2.x to 3.0.0:** file paths must be absolute in every tool that takes one. `freecad_open_document`,
+`freecad_save_document`, `freecad_export_ifc`, `freecad_techdraw_export_svg`, `freecad_techdraw_export_dxf`
+and the `fontFile` of `freecad_draft_shapestring` now reject relative paths, `..` and system folders, like the
+import/export tools already did. Restart the macro too: it changed in 3.0.0.
+
+**From 1.x:** 2.0.0 has two breaking changes:
 
 - **Restart the macro.** In GUI mode, stop `freecad_server.FCMacro` in FreeCAD and run the 2.0.0 copy.
   The new macro writes the token the server needs (see Step 1 below); with an older macro the server
@@ -124,7 +129,7 @@ By default the server uses `freecadcmd` from your `PATH`, falling back to `/Appl
 
 ## Security
 
-- Every tool validates its arguments against its `inputSchema` before any Python is generated, and strings go into generated Python as JSON literals; file-path checks (absolute paths only, no `..`, system paths blocked) are applied in the tool modules that use `validateFilePath`, not uniformly across all of them
+- Every tool validates its arguments against its `inputSchema` before any Python is generated, and strings go into generated Python as JSON literals; every file path is checked (absolute paths only, no `..`, system paths blocked)
 - The `freecad_execute_python` tool allows arbitrary Python execution by design — only use in trusted environments
 - The GUI socket server listens only on localhost (`127.0.0.1:12345`) and requires the token from `~/.freecad-mcp/token` (mode 0600), so other local users cannot run Python in your FreeCAD session; processes running as your own user can still read the token
 

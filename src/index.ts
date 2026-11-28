@@ -73,7 +73,7 @@ class FreeCADMCPServer {
     this.server = new Server(
       {
         name: 'freecad-mcp',
-        version: '2.0.0',
+        version: '3.0.0',
       },
       {
         capabilities: {
@@ -156,17 +156,23 @@ class FreeCADMCPServer {
       console.error('[FreeCAD MCP Error]', error);
     };
 
-    process.on('SIGINT', async () => {
-      await this.server.close();
+    // Stop the headless FreeCAD process and remove its private REPL folder however the server
+    // ends: a signal, the client closing stdin, or a normal exit.
+    process.on('exit', () => this.bridge.destroy());
+    const shutdown = async () => {
+      await this.server.close().catch(() => {});
       process.exit(0);
-    });
+    };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    process.stdin.on('end', shutdown);
   }
 
   async run(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error(
-      `FreeCAD MCP Server v2.0.0 running (cmd: ${FREECAD_CMD}, tools: ${ALL_TOOLS.length})`
+      `FreeCAD MCP Server v3.0.0 running (cmd: ${FREECAD_CMD}, tools: ${ALL_TOOLS.length})`
     );
   }
 }

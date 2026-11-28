@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validatePositiveNumber, validateNumber, validateToolArgs } from '../validation.js';
+import { validatePositiveNumber, validateToolArgs } from '../validation.js';
 
 export const OPERATION_TOOLS = [
   {
