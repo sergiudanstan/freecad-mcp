@@ -21,6 +21,17 @@ npm install
 npm run build
 ```
 
+### Upgrading from 1.x
+
+2.0.0 has two breaking changes:
+
+- **Restart the macro.** In GUI mode, stop `freecad_server.FCMacro` in FreeCAD and run the 2.0.0 copy.
+  The new macro writes the token the server needs (see Step 1 below); with an older macro the server
+  reports `FreeCAD GUI token not found`.
+- **Arguments are checked against each tool's schema.** A value of the wrong type is now an error, for
+  example `"10"` for a number or `"true"` for a boolean. Clients that follow the tool schemas need no
+  change.
+
 ## Setup
 
 The server supports two modes: **GUI mode** (recommended) and **headless mode** (fallback).
@@ -47,7 +58,7 @@ The macro must be running **before** the MCP server connects. The server auto-de
 **Token.** On every start the macro generates a new random token and writes it to `~/.freecad-mcp/token`
 (readable only by you). The MCP server reads that file and sends the token with each request; the macro
 refuses requests without the right token. Nothing needs configuring, but after updating freecad-mcp
-(1.3.0 or later) you must stop and restart the macro in FreeCAD: an older macro does not write a token, and
+(2.0.0 or later) you must stop and restart the macro in FreeCAD: an older macro does not write a token, and
 the server then reports `FreeCAD GUI token not found`.
 
 **Step 2 — Configure your MCP client:**

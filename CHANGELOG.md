@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.3.0] - 2026-11-28
+## [2.0.0] - 2026-11-28
+
+Major version: strict argument validation and the macro token break older clients and macros
+(see Changed and Security below).
 
 ### Security
 - Tool arguments could be turned into code: 109 of the 164 tools (all except
@@ -42,7 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compatibility: arguments are now validated strictly against each tool's `inputSchema`. A value of the
   wrong type (for example `"10"` for a `number`) or an unknown key inside a nested object is an error;
   unknown top-level keys are still ignored.
-- The version reported to MCP clients and on stderr is the package version (was `2.0.0`).
+- The version reported to MCP clients and on stderr now matches `package.json`; the 1.x releases
+  reported a fixed `2.0.0`.
 
 ## [1.2.0] - 2026-11-26
 
@@ -142,7 +146,10 @@ headless; the code itself is unchanged from the 1.0.0 source release below.
 - Added file path traversal prevention for import/export operations
 - Added security warning to `freecad_execute_python` tool description
 
-[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/sergiudanstan/freecad-mcp/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.3...v1.2.0
+[1.1.3]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/sergiudanstan/freecad-mcp/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/sergiudanstan/freecad-mcp/releases/tag/v1.1.1
 [1.1.0]: https://github.com/sergiudanstan/freecad-mcp/releases/tag/v1.1.0
