@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -89,6 +90,7 @@ export async function handleSpreadsheetTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(SPREADSHEET_TOOLS, name, args);
   switch (name) {
     case 'freecad_spreadsheet_create': {
       const sheetName = (args.name as string) || 'Spreadsheet';
@@ -110,7 +112,7 @@ _mcp_result["result"] = {"name": sheet.Name, "label": sheet.Label}
 ${DOC_PREAMBLE}
 sheet = doc.getObject(${JSON.stringify(sheetName)})
 if sheet is None:
-    raise ValueError("Spreadsheet not found: ${sheetName}")
+    raise ValueError("Spreadsheet not found: " + ${JSON.stringify(sheetName)})
 ${cellsCode}
 doc.recompute()
 _mcp_result["result"] = {"sheet": sheet.Name, "cellsSet": ${cells.length}}
@@ -124,7 +126,7 @@ _mcp_result["result"] = {"sheet": sheet.Name, "cellsSet": ${cells.length}}
 ${DOC_PREAMBLE}
 sheet = doc.getObject(${JSON.stringify(sheetName)})
 if sheet is None:
-    raise ValueError("Spreadsheet not found: ${sheetName}")
+    raise ValueError("Spreadsheet not found: " + ${JSON.stringify(sheetName)})
 results = {}
 for cell in ${JSON.stringify(cells)}:
     try:
@@ -144,7 +146,7 @@ _mcp_result["result"] = {"sheet": sheet.Name, "values": results}
 ${DOC_PREAMBLE}
 sheet = doc.getObject(${JSON.stringify(sheetName)})
 if sheet is None:
-    raise ValueError("Spreadsheet not found: ${sheetName}")
+    raise ValueError("Spreadsheet not found: " + ${JSON.stringify(sheetName)})
 sheet.setAlias(${JSON.stringify(cell)}, ${JSON.stringify(alias)})
 doc.recompute()
 _mcp_result["result"] = {"sheet": sheet.Name, "cell": ${JSON.stringify(cell)}, "alias": ${JSON.stringify(alias)}}
@@ -159,7 +161,7 @@ _mcp_result["result"] = {"sheet": sheet.Name, "cell": ${JSON.stringify(cell)}, "
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 obj.setExpression(${JSON.stringify(property)}, ${JSON.stringify(expression)})
 doc.recompute()
 _mcp_result["result"] = {"object": obj.Name, "property": ${JSON.stringify(property)}, "expression": ${JSON.stringify(expression)}}

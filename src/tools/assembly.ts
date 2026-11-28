@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -174,7 +175,7 @@ import JointObject
 import UtilsAssembly
 assembly = doc.getObject(${JSON.stringify(assemblyName)})
 if assembly is None:
-    raise ValueError("Assembly not found: ${assemblyName}")
+    raise ValueError("Assembly not found: " + ${JSON.stringify(assemblyName)})
 parts = {}
 for key, part_name in (("c1", ${JSON.stringify(comp1)}), ("c2", ${JSON.stringify(comp2)})):
     parts[key] = doc.getObject(part_name)
@@ -197,6 +198,7 @@ export async function handleAssemblyTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(ASSEMBLY_TOOLS, name, args);
   switch (name) {
     case 'freecad_assembly_create': {
       const asmName = (args.name as string) || 'Assembly';
@@ -218,10 +220,10 @@ _mcp_result["result"] = {"name": assembly.Name, "label": assembly.Label}
 ${DOC_PREAMBLE}
 assembly = doc.getObject(${JSON.stringify(assemblyName)})
 if assembly is None:
-    raise ValueError("Assembly not found: ${assemblyName}")
+    raise ValueError("Assembly not found: " + ${JSON.stringify(assemblyName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 link = doc.addObject("App::Link", ${JSON.stringify(objectName + '_Link')})
 link.LinkedObject = obj
 link.Placement.Base = FreeCAD.Vector(${x}, ${y}, ${z})
@@ -238,10 +240,10 @@ _mcp_result["result"] = {"name": link.Name, "linkedTo": obj.Name, "position": {"
 ${DOC_PREAMBLE}
 assembly = doc.getObject(${JSON.stringify(assemblyName)})
 if assembly is None:
-    raise ValueError("Assembly not found: ${assemblyName}")
+    raise ValueError("Assembly not found: " + ${JSON.stringify(assemblyName)})
 comp = doc.getObject(${JSON.stringify(componentName)})
 if comp is None:
-    raise ValueError("Component not found: ${componentName}")
+    raise ValueError("Component not found: " + ${JSON.stringify(componentName)})
 import JointObject
 import UtilsAssembly
 grounded = UtilsAssembly.getJointGroup(assembly).newObject("App::FeaturePython", "Grounded_" + comp.Name)
@@ -318,7 +320,7 @@ _mcp_result["result"] = {"name": grounded.Name, "component": comp.Name, "grounde
 ${DOC_PREAMBLE}
 assembly = doc.getObject(${JSON.stringify(assemblyName)})
 if assembly is None:
-    raise ValueError("Assembly not found: ${assemblyName}")
+    raise ValueError("Assembly not found: " + ${JSON.stringify(assemblyName)})
 import UtilsAssembly
 solver_status = assembly.solve()
 doc.recompute()

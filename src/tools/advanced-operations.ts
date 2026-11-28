@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { pyBool, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -180,6 +181,7 @@ export async function handleAdvancedOperationTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(ADVANCED_OPERATION_TOOLS, name, args);
   switch (name) {
     case 'freecad_thickness': {
       const objectName = args.objectName as string;
@@ -190,7 +192,7 @@ export async function handleAdvancedOperationTool(
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 faces = [getattr(obj.Shape, f) for f in ${JSON.stringify(faceNames)}]
 shell_shape = obj.Shape.makeThickness(faces, ${thickness}, 1e-3)
 result = doc.addObject("Part::Feature", ${JSON.stringify(resultName)})
@@ -208,7 +210,7 @@ _mcp_result["result"] = {"name": result.Name, "thickness": ${thickness}, "remove
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 offset_shape = obj.Shape.makeOffsetShape(${distance}, 1e-3, fill=True)
 result = doc.addObject("Part::Feature", ${JSON.stringify(resultName)})
 result.Shape = offset_shape
@@ -232,7 +234,7 @@ _mcp_result["result"] = {"name": result.Name, "offset": ${distance}, "volume": r
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 section_shape = obj.Shape.section(Part.makePlane(1000, 1000, ${base}, ${normal}))
 result = doc.addObject("Part::Feature", ${JSON.stringify(resultName)})
 result.Shape = section_shape
@@ -271,7 +273,7 @@ ${DOC_PREAMBLE}
 import Draft
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 arr = Draft.make_ortho_array(obj, v_x=FreeCAD.Vector(${dx}, ${dy}, ${dz}), n_x=${count}, n_y=1, n_z=1)
 arr.Label = ${JSON.stringify(arrName)}
 doc.recompute()
@@ -295,7 +297,7 @@ ${DOC_PREAMBLE}
 import Draft
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 arr = Draft.make_polar_array(obj, ${count}, ${angle}, FreeCAD.Vector(${centerX}, ${centerY}, ${centerZ}), FreeCAD.Vector(${axisX}, ${axisY}, ${axisZ}))
 arr.Label = ${JSON.stringify(arrName)}
 doc.recompute()
@@ -313,7 +315,7 @@ _mcp_result["result"] = {"name": arr.Name, "label": arr.Label, "count": ${count}
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 import FreeCAD
 mat = FreeCAD.Matrix()
 mat.scale(${scaleX}, ${scaleY}, ${scaleZ})
@@ -336,11 +338,11 @@ _mcp_result["result"] = {"name": result.Name, "scale": {"x": ${scaleX}, "y": ${s
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 ext = doc.addObject("Part::Extrusion", ${JSON.stringify(resultName)})
 ext.Base = obj
 ext.Dir = FreeCAD.Vector(${dirX}, ${dirY}, ${dirZ})
-ext.Solid = ${solid ? 'True' : 'False'}
+ext.Solid = ${pyBool(solid)}
 doc.recompute()
 _mcp_result["result"] = {"name": ext.Name, "direction": {"x": ${dirX}, "y": ${dirY}, "z": ${dirZ}}, "solid": ext.Solid, "volume": ext.Shape.Volume}
 `);
@@ -352,7 +354,7 @@ _mcp_result["result"] = {"name": ext.Name, "direction": {"x": ${dirX}, "y": ${di
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 com = obj.Shape.CenterOfGravity
 sm = obj.Shape.MatrixOfInertia
 _mcp_result["result"] = {
@@ -377,7 +379,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 face = obj.Shape.Faces[${faceIndex} - 1]
 com = face.CenterOfMass
 normal = face.normalAt(0, 0)
@@ -396,7 +398,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 faces = []
 for i, face in enumerate(obj.Shape.Faces):
     com = face.CenterOfMass
@@ -421,7 +423,7 @@ _mcp_result["result"] = {"objectName": ${JSON.stringify(objectName)}, "faceCount
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 edge = obj.Shape.Edges[${edgeIndex} - 1]
 v1 = edge.Vertexes[0].Point if edge.Vertexes else FreeCAD.Vector(0,0,0)
 v2 = edge.Vertexes[-1].Point if len(edge.Vertexes) > 1 else v1
@@ -440,7 +442,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 edges = []
 for i, edge in enumerate(obj.Shape.Edges):
     v1 = edge.Vertexes[0].Point if edge.Vertexes else FreeCAD.Vector(0,0,0)

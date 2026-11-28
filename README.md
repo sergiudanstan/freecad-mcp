@@ -38,10 +38,17 @@ GUI mode connects to a running FreeCAD instance so you can see changes live in t
 5. You should see in the FreeCAD console:
    ```
    MCP Socket Server listening on 127.0.0.1:12345
+   MCP Server: auth token written to /Users/<you>/.freecad-mcp/token
    MCP Server macro loaded. Waiting for connections...
    ```
 
 The macro must be running **before** the MCP server connects. The server auto-detects the socket on startup.
+
+**Token.** On every start the macro generates a new random token and writes it to `~/.freecad-mcp/token`
+(readable only by you). The MCP server reads that file and sends the token with each request; the macro
+refuses requests without the right token. Nothing needs configuring, but after updating freecad-mcp
+(1.3.0 or later) you must stop and restart the macro in FreeCAD: an older macro does not write a token, and
+the server then reports `FreeCAD GUI token not found`.
 
 **Step 2 — Configure your MCP client:**
 
@@ -106,9 +113,9 @@ By default the server uses `freecadcmd` from your `PATH`, falling back to `/Appl
 
 ## Security
 
-- Strings are escaped before they go into generated Python; numeric range checks and file-path checks (absolute paths only, no `..`, system paths blocked) are applied in the tool modules that use `src/validation.ts`, not uniformly across all of them
+- Every tool validates its arguments against its `inputSchema` before any Python is generated, and strings go into generated Python as JSON literals; file-path checks (absolute paths only, no `..`, system paths blocked) are applied in the tool modules that use `validateFilePath`, not uniformly across all of them
 - The `freecad_execute_python` tool allows arbitrary Python execution by design — only use in trusted environments
-- The GUI socket server listens only on localhost (`127.0.0.1:12345`) and has no authentication: any local process can run Python in your FreeCAD session
+- The GUI socket server listens only on localhost (`127.0.0.1:12345`) and requires the token from `~/.freecad-mcp/token` (mode 0600), so other local users cannot run Python in your FreeCAD session; processes running as your own user can still read the token
 
 See [SECURITY.md](SECURITY.md) for the threat model and vulnerability reporting.
 

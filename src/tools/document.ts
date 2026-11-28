@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { validateToolArgs } from '../validation.js';
 
 export const DOCUMENT_TOOLS = [
   {
@@ -76,6 +77,7 @@ export async function handleDocumentTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(DOCUMENT_TOOLS, name, args);
   switch (name) {
     case 'freecad_new_document': {
       const docName = args.name as string;

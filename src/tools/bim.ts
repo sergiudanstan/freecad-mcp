@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -162,6 +163,7 @@ export async function handleBimTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(BIM_TOOLS, name, args);
   switch (name) {
     case 'freecad_arch_wall': {
       const baselineName = args.baselineName as string | undefined;
@@ -175,7 +177,7 @@ ${DOC_PREAMBLE}
 import Arch
 baseline = doc.getObject(${JSON.stringify(baselineName)})
 if baseline is None:
-    raise ValueError("Baseline not found: ${baselineName}")
+    raise ValueError("Baseline not found: " + ${JSON.stringify(baselineName)})
 wall = Arch.makeWall(baseline, width=${width}, height=${height})
 wall.Label = ${JSON.stringify(wallName)}
 doc.recompute()
@@ -246,7 +248,7 @@ ${DOC_PREAMBLE}
 import Arch
 wall = doc.getObject(${JSON.stringify(wallName)})
 if wall is None:
-    raise ValueError("Wall not found: ${wallName}")
+    raise ValueError("Wall not found: " + ${JSON.stringify(wallName)})
 # Create a simple rectangular window
 import Draft
 rect = Draft.makeRectangle(${windowWidth}, ${windowHeight})
@@ -322,7 +324,7 @@ ${DOC_PREAMBLE}
 import Arch
 base = doc.getObject(${JSON.stringify(baseName)})
 if base is None:
-    raise ValueError("Base not found: ${baseName}")
+    raise ValueError("Base not found: " + ${JSON.stringify(baseName)})
 roof = Arch.makeRoof(base, angles=[${angle}])
 roof.Label = ${JSON.stringify(roofName)}
 doc.recompute()

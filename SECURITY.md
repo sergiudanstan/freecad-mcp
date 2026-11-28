@@ -9,7 +9,7 @@ network listener of its own.
 
 | Version | Supported |
 |---|---|
-| 1.1.x | Current |
+| 1.3.x | Current |
 
 Single maintainer; only the latest release receives fixes.
 
@@ -45,21 +45,35 @@ What this server can reach, and what that means:
   It is a guard against mistakes, not a sandbox: it is not an allow-list, it is applied by
   the import/export handlers rather than uniformly, and `freecad_execute_python` can read
   and write anything the FreeCAD user can.
-- **Input handling.** Strings are escaped (`escapePythonString`, `JSON.stringify`) before
-  they are placed into generated Python. Numeric range checks (`validateNumber` and
-  friends) are applied in some tool modules, not all; several handlers cast arguments
-  without checking them, and the server does not validate arguments against each tool's
-  `inputSchema` itself. Because `freecad_execute_python` exists, an injection through a
-  numeric argument gains nothing that tool does not already grant, but it is still a bug
-  worth reporting if it bypasses a check that is documented.
+- **Input handling.** Every tool handler (`handle*Tool` in `src/tools/`) first validates its
+  arguments against the tool's `inputSchema` (`validateToolArgs` in `src/validation.ts`):
+  required properties present, strict types (`number`/`integer` finite, `boolean` a real
+  boolean, `"10"` is not a number), `enum`, and arrays and
+  nested objects checked recursively, with unknown keys inside nested objects rejected
+  (unknown top-level keys are ignored). Range checks (for example positive dimensions) are not
+  part of this schema check; they stay in the tool handlers that already had them
+  (`validatePositiveNumber`, `validateNumber`). A rejected call never reaches FreeCAD. Every string
+  that goes into generated Python is serialized with `JSON.stringify`, so tool arguments
+  are inert data. `test/injection.test.mjs` sends payloads into every property of every
+  tool and fails if one turns into code. Because `freecad_execute_python` exists, an
+  injection gains nothing that tool does not already grant, but any way to make another
+  tool's input run as code is a bug worth reporting.
 - **Network.** The GUI mode talks to `freecad_server.FCMacro`, which listens on
-  `127.0.0.1:12345`. It is not reachable from other machines, but it has **no
-  authentication**: any local process or local user can connect and run Python in your
-  FreeCAD session. Run the macro only on a machine you do not share.
-- **Temporary files.** Headless mode writes a REPL script to a fixed name in the system
-  temporary directory (`freecad-mcp-repl.py`) and runs it with `freecadcmd`. On a
-  multi-user machine another user could pre-create that path; use headless mode only on a
-  single-user machine.
+  `127.0.0.1:12345` and is not reachable from other machines. On every start the macro
+  generates a random token (`secrets.token_hex(32)`) and writes it to
+  `~/.freecad-mcp/token` (directory 0700, file 0600); the server reads that file and sends
+  the token as the first line of each request. The macro compares it with
+  `hmac.compare_digest` and closes the connection without running anything if it is missing
+  or wrong. Each refused request that sent data leaves a warning in the FreeCAD report view,
+  without the token; an empty connection (the bridge's mode detection) leaves none. This keeps other local users out; it does not protect against other processes
+  running as your own user, which can read the token file. The macro serves one connection
+  at a time, so a local client that connects and stays silent blocks it until it goes away.
+- **Temporary files.** Headless mode writes its REPL script into a private folder created
+  with `mkdtemp` in the system temporary directory (mode 0700, the file created exclusively
+  with mode 0600, one folder per server instance) and runs it with `freecadcmd`. The folder
+  is removed by `FreeCADBridge.destroy()`; the stdio server does not call it on exit, so a
+  private `freecad-mcp-*` folder can be left in the temporary directory. A call that times out kills the headless FreeCAD
+  process; the next call starts a new one, and documents that were not saved are lost.
 
 In scope: bypasses of the documented validation, code or file access reachable from input
 that should be inert, the macro accepting connections from a non-loopback address, and

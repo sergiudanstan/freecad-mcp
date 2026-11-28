@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { pyBool, validateToolArgs } from '../validation.js';
 
 export const PART_DESIGN_TOOLS = [
   {
@@ -344,6 +345,7 @@ export async function handlePartDesignTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(PART_DESIGN_TOOLS, name, args);
   switch (name) {
     case 'freecad_pad': {
       const sketchName = args.sketchName as string;
@@ -368,7 +370,7 @@ pad = doc.addObject("PartDesign::Pad", ${JSON.stringify(padName)})
 pad.Profile = sketch
 pad.Length = ${length}
 pad.SideType = ${JSON.stringify(symmetric ? 'Symmetric' : 'One side')}
-pad.Reversed = ${reversed ? 'True' : 'False'}
+pad.Reversed = ${pyBool(reversed)}
 body.addObject(pad)
 doc.recompute()
 _mcp_result["result"] = {"name": pad.Name, "length": pad.Length, "type": pad.TypeId}
@@ -438,7 +440,7 @@ _mcp_result["result"] = {"name": rev.Name, "angle": rev.Angle, "type": rev.TypeI
 doc = FreeCAD.ActiveDocument
 loft = doc.addObject("Part::Loft", ${JSON.stringify(loftName)})
 loft.Sections = ${sectionsCode}
-loft.Solid = ${solid ? 'True' : 'False'}
+loft.Solid = ${pyBool(solid)}
 doc.recompute()
 _mcp_result["result"] = {"name": loft.Name, "sections": ${JSON.stringify(sketchNames)}, "solid": loft.Solid, "type": loft.TypeId}
 `);
@@ -454,7 +456,7 @@ doc = FreeCAD.ActiveDocument
 sweep = doc.addObject("Part::Sweep", ${JSON.stringify(sweepName)})
 sweep.Sections = [doc.getObject(${JSON.stringify(profileName)})]
 sweep.Spine = (doc.getObject(${JSON.stringify(pathName)}), [])
-sweep.Solid = ${solid ? 'True' : 'False'}
+sweep.Solid = ${pyBool(solid)}
 doc.recompute()
 _mcp_result["result"] = {"name": sweep.Name, "profile": ${JSON.stringify(profileName)}, "path": ${JSON.stringify(pathName)}, "type": sweep.TypeId}
 `);
@@ -472,7 +474,7 @@ _mcp_result["result"] = {"name": sweep.Name, "profile": ${JSON.stringify(profile
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 body = obj.getParentGeoFeatureGroup()
 if body is None or body.TypeId != "PartDesign::Body":
     raise ValueError(obj.Name + " is not in a PartDesign Body; use the Part tools for loose solids")
@@ -497,7 +499,7 @@ _mcp_result["result"] = {"name": fillet.Name, "radius": fillet.Radius, "edges": 
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 body = obj.getParentGeoFeatureGroup()
 if body is None or body.TypeId != "PartDesign::Body":
     raise ValueError(obj.Name + " is not in a PartDesign Body; use the Part tools for loose solids")
@@ -555,7 +557,7 @@ _mcp_result["result"] = {"name": hole.Name, "diameter": ${diameter}, "depth": ${
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":
@@ -589,7 +591,7 @@ _mcp_result["result"] = {"name": thk.Name, "thickness": ${thickness}, "faces": $
 doc = FreeCAD.ActiveDocument
 feature = doc.getObject(${JSON.stringify(featureName)})
 if feature is None:
-    raise ValueError("Feature not found: ${featureName}")
+    raise ValueError("Feature not found: " + ${JSON.stringify(featureName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":
@@ -618,7 +620,7 @@ _mcp_result["result"] = {"name": lp.Name, "length": ${length}, "occurrences": ${
 doc = FreeCAD.ActiveDocument
 feature = doc.getObject(${JSON.stringify(featureName)})
 if feature is None:
-    raise ValueError("Feature not found: ${featureName}")
+    raise ValueError("Feature not found: " + ${JSON.stringify(featureName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":
@@ -645,7 +647,7 @@ _mcp_result["result"] = {"name": pp.Name, "angle": ${angle}, "occurrences": ${oc
 doc = FreeCAD.ActiveDocument
 feature = doc.getObject(${JSON.stringify(featureName)})
 if feature is None:
-    raise ValueError("Feature not found: ${featureName}")
+    raise ValueError("Feature not found: " + ${JSON.stringify(featureName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":
@@ -687,8 +689,8 @@ helix.Profile = sketch
 helix.Pitch = ${pitch}
 ${height !== undefined ? `helix.Height = ${height}` : ''}
 ${turns !== undefined ? `helix.Turns = ${turns}` : ''}
-helix.LeftHanded = ${leftHanded ? 'True' : 'False'}
-helix.Reversed = ${reversed ? 'True' : 'False'}
+helix.LeftHanded = ${pyBool(leftHanded)}
+helix.Reversed = ${pyBool(reversed)}
 body.addObject(helix)
 doc.recompute()
 _mcp_result["result"] = {"name": helix.Name, "pitch": ${pitch}, "type": helix.TypeId}
@@ -719,7 +721,7 @@ helix.Profile = sketch
 helix.Pitch = ${pitch}
 ${height !== undefined ? `helix.Height = ${height}` : ''}
 ${turns !== undefined ? `helix.Turns = ${turns}` : ''}
-helix.LeftHanded = ${leftHanded ? 'True' : 'False'}
+helix.LeftHanded = ${pyBool(leftHanded)}
 body.addObject(helix)
 doc.recompute()
 _mcp_result["result"] = {"name": helix.Name, "pitch": ${pitch}, "type": helix.TypeId}
@@ -735,9 +737,9 @@ doc = FreeCAD.ActiveDocument
 profile = doc.getObject(${JSON.stringify(profileName)})
 spine = doc.getObject(${JSON.stringify(spineName)})
 if profile is None:
-    raise ValueError("Profile not found: ${profileName}")
+    raise ValueError("Profile not found: " + ${JSON.stringify(profileName)})
 if spine is None:
-    raise ValueError("Spine not found: ${spineName}")
+    raise ValueError("Spine not found: " + ${JSON.stringify(spineName)})
 body = None
 for obj in doc.Objects:
     if obj.TypeId == "PartDesign::Body":
@@ -765,9 +767,9 @@ doc = FreeCAD.ActiveDocument
 profile = doc.getObject(${JSON.stringify(profileName)})
 spine = doc.getObject(${JSON.stringify(spineName)})
 if profile is None:
-    raise ValueError("Profile not found: ${profileName}")
+    raise ValueError("Profile not found: " + ${JSON.stringify(profileName)})
 if spine is None:
-    raise ValueError("Spine not found: ${spineName}")
+    raise ValueError("Spine not found: " + ${JSON.stringify(spineName)})
 body = None
 for obj in doc.Objects:
     if obj.TypeId == "PartDesign::Body":
@@ -825,7 +827,7 @@ _mcp_result["result"] = {"name": groove.Name, "angle": ${angle}, "type": groove.
 doc = FreeCAD.ActiveDocument
 feature = doc.getObject(${JSON.stringify(featureName)})
 if feature is None:
-    raise ValueError("Feature not found: ${featureName}")
+    raise ValueError("Feature not found: " + ${JSON.stringify(featureName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":
@@ -851,7 +853,7 @@ _mcp_result["result"] = {"name": draft.Name, "angle": ${angle}, "faces": ${JSON.
 doc = FreeCAD.ActiveDocument
 feature = doc.getObject(${JSON.stringify(featureName)})
 if feature is None:
-    raise ValueError("Feature not found: ${featureName}")
+    raise ValueError("Feature not found: " + ${JSON.stringify(featureName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":
@@ -877,7 +879,7 @@ _mcp_result["result"] = {"name": mt.Name, "transforms": ${JSON.stringify(transfo
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 body = None
 for b in doc.Objects:
     if b.TypeId == "PartDesign::Body":

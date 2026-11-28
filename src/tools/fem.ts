@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { pyBool, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -150,6 +151,7 @@ export async function handleFemTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(FEM_TOOLS, name, args);
   switch (name) {
     case 'freecad_fem_analysis': {
       const analysisName = (args.name as string) || 'Analysis';
@@ -181,7 +183,7 @@ _mcp_result["result"] = {"name": analysis.Name, "label": analysis.Label}
       if (materialName === 'Custom' && youngsModulus !== undefined && density !== undefined) {
         matCode = `mat_obj.Material = {"Name": "Custom", "YoungsModulus": "${youngsModulus} MPa", "PoissonRatio": "${poissonRatio}", "Density": "${density} kg/m^3"}`;
       } else {
-        matCode = materialPresets[materialName] || materialPresets['Steel'];
+        matCode = Object.hasOwn(materialPresets, materialName) ? materialPresets[materialName] : materialPresets['Steel'];
       }
 
       return bridge.run(`
@@ -189,7 +191,7 @@ ${DOC_PREAMBLE}
 import ObjectsFem
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 mat_obj = ObjectsFem.makeMaterialSolid(doc, ${JSON.stringify(matObjName)})
 ${matCode}
 analysis.addObject(mat_obj)
@@ -208,10 +210,10 @@ ${DOC_PREAMBLE}
 import ObjectsFem
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 fixed = ObjectsFem.makeConstraintFixed(doc, ${JSON.stringify(constraintName)})
 fixed.References = [(obj, ${JSON.stringify(references).replace(/"/g, '"')})]
 analysis.addObject(fixed)
@@ -234,10 +236,10 @@ ${DOC_PREAMBLE}
 import ObjectsFem
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 force_obj = ObjectsFem.makeConstraintForce(doc, ${JSON.stringify(constraintName)})
 force_obj.References = [(obj, ${JSON.stringify(references).replace(/"/g, '"')})]
 force_obj.Force = ${force}
@@ -261,14 +263,14 @@ ${DOC_PREAMBLE}
 import ObjectsFem
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 pressure_obj = ObjectsFem.makeConstraintPressure(doc, ${JSON.stringify(constraintName)})
 pressure_obj.References = [(obj, ${JSON.stringify(references).replace(/"/g, '"')})]
 pressure_obj.Pressure = ${pressure}
-pressure_obj.Reversed = ${reversed ? 'True' : 'False'}
+pressure_obj.Reversed = ${pyBool(reversed)}
 analysis.addObject(pressure_obj)
 doc.recompute()
 _mcp_result["result"] = {"name": pressure_obj.Name, "pressure": ${pressure}, "references": ${JSON.stringify(references)}}
@@ -287,10 +289,10 @@ ${DOC_PREAMBLE}
 import ObjectsFem
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 mesh = ObjectsFem.makeMeshGmsh(doc, ${JSON.stringify(meshName)})
 mesh.Shape = obj  # 'Part' was renamed to 'Shape' in FreeCAD 1.0
 ${maxSize > 0 ? `mesh.CharacteristicLengthMax = ${maxSize}` : ''}
@@ -324,7 +326,7 @@ ${DOC_PREAMBLE}
 import ObjectsFem
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 ${solver === 'calculix'
   ? `solver = ObjectsFem.makeSolverCalculiXCcxTools(doc, ${JSON.stringify(solverName)})`
   : `solver = ObjectsFem.makeSolverElmer(doc, ${JSON.stringify(solverName)})`}
@@ -350,7 +352,7 @@ _mcp_result["result"] = result
 ${DOC_PREAMBLE}
 analysis = doc.getObject(${JSON.stringify(analysisName)})
 if analysis is None:
-    raise ValueError("Analysis not found: ${analysisName}")
+    raise ValueError("Analysis not found: " + ${JSON.stringify(analysisName)})
 # Find result objects in the analysis
 results = []
 for obj in analysis.Group:
