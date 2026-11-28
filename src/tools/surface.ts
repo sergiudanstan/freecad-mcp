@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -98,6 +99,7 @@ export async function handleSurfaceTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(SURFACE_TOOLS, name, args);
   switch (name) {
     case 'freecad_surface_filling': {
       const objectName = args.objectName as string;
@@ -108,7 +110,7 @@ export async function handleSurfaceTool(
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 fill = doc.addObject("Surface::Filling", ${JSON.stringify(fillName)})
 fill.BoundaryEdges = [${edgeRefs}]
 doc.recompute()
@@ -154,7 +156,7 @@ _mcp_result["result"] = {"name": sec.Name, "sectionCount": ${sectionNames.length
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 ext = doc.addObject("Surface::Extend", ${JSON.stringify(extName)})
 ext.Face = (obj, [${JSON.stringify(faceName)}])
 ext.Tolerance = 0.1
@@ -178,9 +180,9 @@ ${DOC_PREAMBLE}
 obj1 = doc.getObject(${JSON.stringify(e1Obj)})
 obj2 = doc.getObject(${JSON.stringify(e2Obj)})
 if obj1 is None:
-    raise ValueError("Object not found: ${e1Obj}")
+    raise ValueError("Object not found: " + ${JSON.stringify(e1Obj)})
 if obj2 is None:
-    raise ValueError("Object not found: ${e2Obj}")
+    raise ValueError("Object not found: " + ${JSON.stringify(e2Obj)})
 edge1 = getattr(obj1.Shape, ${JSON.stringify(e1Name)})
 edge2 = getattr(obj2.Shape, ${JSON.stringify(e2Name)})
 ruled = Part.makeRuledSurface(edge1, edge2)

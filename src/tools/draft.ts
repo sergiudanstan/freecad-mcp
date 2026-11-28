@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { pyBool } from '../validation.js';
+import { pyBool, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -315,6 +315,7 @@ export async function handleDraftTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(DRAFT_TOOLS, name, args);
   switch (name) {
     case 'freecad_draft_wire': {
       const points = args.points as Array<{ x: number; y: number; z: number }>;
@@ -325,7 +326,7 @@ export async function handleDraftTool(
 ${DOC_PREAMBLE}
 import Draft
 pts = [${pointsList}]
-wire = Draft.make_wire(pts, closed=${closed ? 'True' : 'False'}, face=False)
+wire = Draft.make_wire(pts, closed=${pyBool(closed)}, face=False)
 wire.Label = ${JSON.stringify(wireName)}
 doc.recompute()
 _mcp_result["result"] = {"name": wire.Name, "label": wire.Label, "points": ${points.length}, "closed": wire.Closed}
@@ -341,7 +342,7 @@ _mcp_result["result"] = {"name": wire.Name, "label": wire.Label, "points": ${poi
 ${DOC_PREAMBLE}
 import Draft
 pts = [${pointsList}]
-bsp = Draft.make_bspline(pts, closed=${closed ? 'True' : 'False'})
+bsp = Draft.make_bspline(pts, closed=${pyBool(closed)})
 bsp.Label = ${JSON.stringify(bsName)}
 doc.recompute()
 _mcp_result["result"] = {"name": bsp.Name, "label": bsp.Label, "points": ${points.length}, "closed": bsp.Closed}
@@ -410,7 +411,7 @@ _mcp_result["result"] = {"name": rect.Name, "label": rect.Label, "width": ${widt
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 fb = doc.addObject("Part::FeaturePython", ${JSON.stringify(fbName)})
 import Draft
 fb_obj = Draft.make_facebinder([(obj, (${faceNames.map(f => JSON.stringify(f)).join(', ')},))])
@@ -477,7 +478,7 @@ _mcp_result["result"] = {"name": ss.Name, "label": ss.Label, "text": ${JSON.stri
 ${DOC_PREAMBLE}
 import Draft
 objs = [${objsCode}]
-result = Draft.move(objs, FreeCAD.Vector(${x}, ${y}, ${z}), copy=${copy ? 'True' : 'False'})
+result = Draft.move(objs, FreeCAD.Vector(${x}, ${y}, ${z}), copy=${pyBool(copy)})
 doc.recompute()
 moved = [r.Name for r in (result if isinstance(result, list) else [result])] if result else ${JSON.stringify(objectNames)}
 _mcp_result["result"] = {"moved": moved, "vector": {"x": ${x}, "y": ${y}, "z": ${z}}, "copy": ${pyBool(copy)}}
@@ -499,7 +500,7 @@ _mcp_result["result"] = {"moved": moved, "vector": {"x": ${x}, "y": ${y}, "z": $
 ${DOC_PREAMBLE}
 import Draft
 objs = [${objsCode}]
-result = Draft.rotate(objs, ${angle}, FreeCAD.Vector(${cx}, ${cy}, ${cz}), FreeCAD.Vector(${ax}, ${ay}, ${az}), copy=${copy ? 'True' : 'False'})
+result = Draft.rotate(objs, ${angle}, FreeCAD.Vector(${cx}, ${cy}, ${cz}), FreeCAD.Vector(${ax}, ${ay}, ${az}), copy=${pyBool(copy)})
 doc.recompute()
 rotated = [r.Name for r in (result if isinstance(result, list) else [result])] if result else ${JSON.stringify(objectNames)}
 _mcp_result["result"] = {"rotated": rotated, "angle": ${angle}, "copy": ${pyBool(copy)}}
@@ -520,7 +521,7 @@ _mcp_result["result"] = {"rotated": rotated, "angle": ${angle}, "copy": ${pyBool
 ${DOC_PREAMBLE}
 import Draft
 objs = [${objsCode}]
-result = Draft.scale(objs, FreeCAD.Vector(${scaleX}, ${scaleY}, ${scaleZ}), FreeCAD.Vector(${cx}, ${cy}, ${cz}), copy=${copy ? 'True' : 'False'})
+result = Draft.scale(objs, FreeCAD.Vector(${scaleX}, ${scaleY}, ${scaleZ}), FreeCAD.Vector(${cx}, ${cy}, ${cz}), copy=${pyBool(copy)})
 doc.recompute()
 scaled = [r.Name for r in (result if isinstance(result, list) else [result])] if result else ${JSON.stringify(objectNames)}
 _mcp_result["result"] = {"scaled": scaled, "scale": {"x": ${scaleX}, "y": ${scaleY}, "z": ${scaleZ}}, "copy": ${pyBool(copy)}}
@@ -536,8 +537,8 @@ ${DOC_PREAMBLE}
 import Draft
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
-result = Draft.offset(obj, FreeCAD.Vector(${distance}, 0, 0), copy=${copy ? 'True' : 'False'})
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
+result = Draft.offset(obj, FreeCAD.Vector(${distance}, 0, 0), copy=${pyBool(copy)})
 doc.recompute()
 _mcp_result["result"] = {"name": result.Name if result else ${JSON.stringify(objectName)}, "distance": ${distance}, "copy": ${pyBool(copy)}}
 `);
@@ -584,9 +585,9 @@ import Draft
 obj = doc.getObject(${JSON.stringify(objectName)})
 path = doc.getObject(${JSON.stringify(pathName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 if path is None:
-    raise ValueError("Path not found: ${pathName}")
+    raise ValueError("Path not found: " + ${JSON.stringify(pathName)})
 arr = Draft.make_path_array(obj, path, ${count})
 arr.Label = ${JSON.stringify(arrName)}
 doc.recompute()
@@ -628,7 +629,7 @@ ${DOC_PREAMBLE}
 import Draft
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 view = Draft.make_shape2dview(obj, FreeCAD.Vector(${dx}, ${dy}, ${dz}))
 view.Label = ${JSON.stringify(viewName)}
 doc.recompute()

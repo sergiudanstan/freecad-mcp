@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { pyBool } from '../validation.js';
+import { pyBool, validateToolArgs } from '../validation.js';
 
 export const SKETCHER_TOOLS = [
   {
@@ -268,6 +268,7 @@ export async function handleSketcherTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(SKETCHER_TOOLS, name, args);
   switch (name) {
     case 'freecad_create_sketch': {
       const sketchName = (args.name as string) || 'Sketch';
@@ -461,7 +462,7 @@ sketch = doc.getObject(${JSON.stringify(sketchName)})
 import Part
 pts = [${pointsList}]
 bspline = Part.BSplineCurve()
-bspline.interpolate(pts, PeriodicFlag=${closed ? 'True' : 'False'})
+bspline.interpolate(pts, PeriodicFlag=${pyBool(closed)})
 idx = sketch.addGeometry(bspline)
 doc.recompute()
 _mcp_result["result"] = {"sketchName": sketch.Name, "geometryIndex": idx, "points": ${points.length}, "closed": ${pyBool(closed)}}

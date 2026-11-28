@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validatePositiveNumber, validateNumber } from '../validation.js';
+import { validatePositiveNumber, validateNumber, validateToolArgs } from '../validation.js';
 
 export const OPERATION_TOOLS = [
   {
@@ -237,6 +237,7 @@ export async function handleOperationTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(OPERATION_TOOLS, name, args);
   switch (name) {
     case 'freecad_boolean_fuse': {
       const obj1 = args.object1 as string;
@@ -247,9 +248,9 @@ doc = FreeCAD.ActiveDocument
 o1 = doc.getObject(${JSON.stringify(obj1)})
 o2 = doc.getObject(${JSON.stringify(obj2)})
 if o1 is None:
-    raise ValueError("Object not found: ${obj1}")
+    raise ValueError("Object not found: " + ${JSON.stringify(obj1)})
 if o2 is None:
-    raise ValueError("Object not found: ${obj2}")
+    raise ValueError("Object not found: " + ${JSON.stringify(obj2)})
 fuse = doc.addObject("Part::Fuse", ${JSON.stringify(fuseName)})
 fuse.Base, fuse.Tool = o1, o2
 doc.recompute()
@@ -266,9 +267,9 @@ doc = FreeCAD.ActiveDocument
 o1 = doc.getObject(${JSON.stringify(obj1)})
 o2 = doc.getObject(${JSON.stringify(obj2)})
 if o1 is None:
-    raise ValueError("Object not found: ${obj1}")
+    raise ValueError("Object not found: " + ${JSON.stringify(obj1)})
 if o2 is None:
-    raise ValueError("Object not found: ${obj2}")
+    raise ValueError("Object not found: " + ${JSON.stringify(obj2)})
 cut = doc.addObject("Part::Cut", ${JSON.stringify(cutName)})
 cut.Base = o1
 cut.Tool = o2
@@ -286,9 +287,9 @@ doc = FreeCAD.ActiveDocument
 o1 = doc.getObject(${JSON.stringify(obj1)})
 o2 = doc.getObject(${JSON.stringify(obj2)})
 if o1 is None:
-    raise ValueError("Object not found: ${obj1}")
+    raise ValueError("Object not found: " + ${JSON.stringify(obj1)})
 if o2 is None:
-    raise ValueError("Object not found: ${obj2}")
+    raise ValueError("Object not found: " + ${JSON.stringify(obj2)})
 common = doc.addObject("Part::Common", ${JSON.stringify(intName)})
 common.Base, common.Tool = o1, o2
 doc.recompute()
@@ -307,7 +308,7 @@ _mcp_result["result"] = {"name": common.Name, "volume": common.Shape.Volume}
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 edges = ${edgesPython}
 fillet = doc.addObject("Part::Fillet", "Fillet")
 fillet.Base = obj
@@ -328,7 +329,7 @@ _mcp_result["result"] = {"name": fillet.Name, "edges": len(edges)}
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 edges = ${edgesPython}
 chamfer = doc.addObject("Part::Chamfer", "Chamfer")
 chamfer.Base = obj
@@ -347,7 +348,7 @@ _mcp_result["result"] = {"name": chamfer.Name, "edges": len(edges)}
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 obj.Placement.Base = FreeCAD.Vector(${x}, ${y}, ${z})
 doc.recompute()
 _mcp_result["result"] = {"name": obj.Name, "position": {"x": ${x}, "y": ${y}, "z": ${z}}}
@@ -368,7 +369,7 @@ _mcp_result["result"] = {"name": obj.Name, "position": {"x": ${x}, "y": ${y}, "z
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 rot = FreeCAD.Rotation(${axisVec}, ${angle})
 obj.Placement.Rotation = rot
 doc.recompute()
@@ -383,7 +384,7 @@ _mcp_result["result"] = {"name": obj.Name, "axis": ${JSON.stringify(axis)}, "ang
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 copy = doc.copyObject(obj)
 ${newName ? `copy.Label = ${JSON.stringify(newName)}` : ''}
 doc.recompute()
@@ -397,7 +398,7 @@ _mcp_result["result"] = {"name": copy.Name, "label": copy.Label}
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 doc.removeObject(${JSON.stringify(objectName)})
 doc.recompute()
 _mcp_result["result"] = {"deleted": ${JSON.stringify(objectName)}}
@@ -418,7 +419,7 @@ _mcp_result["result"] = {"deleted": ${JSON.stringify(objectName)}}
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 mirrored_shape = obj.Shape.mirror(${point}, ${normal})
 mirror_obj = doc.addObject("Part::Feature", ${JSON.stringify(mirrorName)})
 mirror_obj.Shape = mirrored_shape
@@ -433,7 +434,7 @@ _mcp_result["result"] = {"name": mirror_obj.Name, "plane": ${JSON.stringify(plan
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 shape = obj.Shape
 is_valid = shape.isValid()
 is_closed = shape.isClosed() if hasattr(shape, 'isClosed') else None
@@ -464,7 +465,7 @@ _mcp_result["result"] = checks
 doc = FreeCAD.ActiveDocument
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 refined_shape = obj.Shape.removeSplitter()
 result = doc.addObject("Part::Feature", ${JSON.stringify(refinedName)})
 result.Shape = refined_shape

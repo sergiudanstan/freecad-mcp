@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validatePositiveNumber, validateNonNegativeNumber, validateNumber, validateString, escapePythonString } from '../validation.js';
+import { validatePositiveNumber, validateNonNegativeNumber, validateNumber, validateString, escapePythonString, validateToolArgs } from '../validation.js';
 
 export const PRIMITIVE_TOOLS = [
   {
@@ -173,6 +173,7 @@ export async function handlePrimitiveTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(PRIMITIVE_TOOLS, name, args);
   switch (name) {
     case 'freecad_create_box': {
       const objName = escapePythonString((args.name as string) || 'Box');
@@ -268,7 +269,7 @@ _mcp_result["result"] = {"name": wedge_obj.Name, "label": wedge_obj.Label}
     }
 
     case 'freecad_create_helix': {
-      const objName = escapePythonString((args.name as string) || 'Helix');
+      const objName = (args.name as string) || 'Helix';
       const pitch = validatePositiveNumber(args.pitch, 'pitch');
       const height = validatePositiveNumber(args.height, 'height');
       const radius = validatePositiveNumber(args.radius, 'radius');
@@ -288,7 +289,7 @@ _mcp_result["result"] = {"name": helix.Name, "label": helix.Label, "pitch": ${pi
     }
 
     case 'freecad_create_spiral': {
-      const objName = escapePythonString((args.name as string) || 'Spiral');
+      const objName = (args.name as string) || 'Spiral';
       const growth = validatePositiveNumber(args.growth, 'growth');
       const rotations = validatePositiveNumber(args.rotations, 'rotations', 10000);
       const radius = validateNonNegativeNumber(args.radius, 'radius');
@@ -304,7 +305,7 @@ _mcp_result["result"] = {"name": spiral.Name, "label": spiral.Label, "growth": $
     }
 
     case 'freecad_create_ellipsoid': {
-      const objName = escapePythonString((args.name as string) || 'Ellipsoid');
+      const objName = (args.name as string) || 'Ellipsoid';
       const r1 = validatePositiveNumber(args.radius1, 'radius1');
       const r2 = validatePositiveNumber(args.radius2, 'radius2');
       const r3 = validatePositiveNumber((args.radius3 as number) ?? r2, 'radius3');
@@ -320,7 +321,7 @@ _mcp_result["result"] = {"name": ell.Name, "label": ell.Label, "radius1": ${r1},
     }
 
     case 'freecad_create_tube': {
-      const objName = escapePythonString((args.name as string) || 'Tube');
+      const objName = (args.name as string) || 'Tube';
       const outerRadius = validatePositiveNumber(args.outerRadius, 'outerRadius');
       const innerRadius = validatePositiveNumber(args.innerRadius, 'innerRadius');
       const height = validatePositiveNumber(args.height, 'height');
@@ -340,7 +341,7 @@ _mcp_result["result"] = {"name": tube.Name, "label": tube.Label, "outerRadius": 
     }
 
     case 'freecad_create_prism': {
-      const objName = escapePythonString((args.name as string) || 'Prism');
+      const objName = (args.name as string) || 'Prism';
       const sides = validateNumber(args.sides, 'sides', { min: 3, max: 360 });
       const radius = validatePositiveNumber(args.radius, 'radius');
       const height = validatePositiveNumber(args.height, 'height');

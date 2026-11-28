@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validateFilePath, validateString, validateArray, escapePythonString } from '../validation.js';
+import { validateFilePath, validateString, validateArray, escapePythonString, validateToolArgs } from '../validation.js';
 
 export const IMPORT_EXPORT_TOOLS = [
   {
@@ -259,6 +259,7 @@ export async function handleImportExportTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(IMPORT_EXPORT_TOOLS, name, args);
   switch (name) {
     case 'freecad_import_step': {
       const filePath = escapeString(validateFilePath(args.filePath, 'filePath'));
@@ -402,7 +403,7 @@ ${DOC_PREAMBLE}
 import math
 obj = doc.getObject("${objectName}")
 if obj is None:
-    raise ValueError("Object '${objectName}' not found")
+    raise ValueError("Object '" + ${JSON.stringify(args.objectName as string)} + "' not found")
 shape = obj.Shape
 f1 = getattr(shape, "${face1}")
 f2 = getattr(shape, "${face2}")
@@ -428,7 +429,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 obj = doc.getObject("${objectName}")
 if obj is None:
-    raise ValueError("Object '${objectName}' not found")
+    raise ValueError("Object '" + ${JSON.stringify(args.objectName as string)} + "' not found")
 vol = obj.Shape.Volume
 area = obj.Shape.Area
 _mcp_result["result"] = {"objectName": "${objectName}", "volume_mm3": vol, "area_mm2": area}
@@ -442,7 +443,7 @@ _mcp_result["result"] = {"objectName": "${objectName}", "volume_mm3": vol, "area
 ${DOC_PREAMBLE}
 obj = doc.getObject("${objectName}")
 if obj is None:
-    raise ValueError("Object '${objectName}' not found")
+    raise ValueError("Object '" + ${JSON.stringify(args.objectName as string)} + "' not found")
 bb = obj.Shape.BoundBox
 _mcp_result["result"] = {
     "objectName": "${objectName}",
@@ -560,7 +561,7 @@ _mcp_result["result"] = {"exported": obj_names, "filePath": "${filePath}", "size
 ${DOC_PREAMBLE}
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 obj.Shape.exportBrep("${filePath}")
 import os
 _mcp_result["result"] = {"exported": ${JSON.stringify(objectName)}, "filePath": "${filePath}", "size_bytes": os.path.getsize("${filePath}")}

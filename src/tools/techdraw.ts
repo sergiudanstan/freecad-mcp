@@ -1,5 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
+import { validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -114,6 +115,7 @@ export async function handleTechDrawTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(TECHDRAW_TOOLS, name, args);
   switch (name) {
     case 'freecad_techdraw_create_page': {
       const template = (args.template as string) || 'A4_Landscape';
@@ -166,10 +168,10 @@ _mcp_result["result"] = {"name": page.Name, "template": ${JSON.stringify(templat
 ${DOC_PREAMBLE}
 page = doc.getObject(${JSON.stringify(pageName)})
 if page is None:
-    raise ValueError("Page not found: ${pageName}")
+    raise ValueError("Page not found: " + ${JSON.stringify(pageName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 view = doc.addObject("TechDraw::DrawViewPart", ${JSON.stringify(viewName)})
 view.Source = [obj]
 view.Direction = ${dirVec}
@@ -193,10 +195,10 @@ _mcp_result["result"] = {"name": view.Name, "page": page.Name, "direction": ${JS
 ${DOC_PREAMBLE}
 page = doc.getObject(${JSON.stringify(pageName)})
 if page is None:
-    raise ValueError("Page not found: ${pageName}")
+    raise ValueError("Page not found: " + ${JSON.stringify(pageName)})
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 pg = doc.addObject("TechDraw::DrawProjGroup", ${JSON.stringify(pgName)})
 pg.Source = [obj]
 pg.Scale = ${scale}
@@ -247,10 +249,10 @@ _mcp_result["result"] = {"name": pg.Name, "page": page.Name, "views": [${viewsLi
 ${DOC_PREAMBLE}
 page = doc.getObject(${JSON.stringify(pageName)})
 if page is None:
-    raise ValueError("Page not found: ${pageName}")
+    raise ValueError("Page not found: " + ${JSON.stringify(pageName)})
 view = doc.getObject(${JSON.stringify(viewName)})
 if view is None:
-    raise ValueError("View not found: ${viewName}")
+    raise ValueError("View not found: " + ${JSON.stringify(viewName)})
 dim = doc.addObject(${JSON.stringify(dimType)}, ${JSON.stringify(dimName)})
 dim.Type = ${JSON.stringify(dimensionType.charAt(0).toUpperCase() + dimensionType.slice(1))}
 ${refsCode}
@@ -268,7 +270,7 @@ ${DOC_PREAMBLE}
 import TechDraw
 page = doc.getObject(${JSON.stringify(pageName)})
 if page is None:
-    raise ValueError("Page not found: ${pageName}")
+    raise ValueError("Page not found: " + ${JSON.stringify(pageName)})
 doc.recompute()
 TechDraw.writeSVGPage(page, ${JSON.stringify(filePath)})
 import os
@@ -284,7 +286,7 @@ ${DOC_PREAMBLE}
 import TechDraw
 page = doc.getObject(${JSON.stringify(pageName)})
 if page is None:
-    raise ValueError("Page not found: ${pageName}")
+    raise ValueError("Page not found: " + ${JSON.stringify(pageName)})
 doc.recompute()
 TechDraw.writeDXFPage(page, ${JSON.stringify(filePath)})
 import os

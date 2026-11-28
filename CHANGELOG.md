@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-28
+
+### Security
+- Tool arguments could be turned into code: 109 of the 164 tools (all except
+  `freecad_execute_python`) placed numbers, booleans or strings into generated Python without
+  checking or quoting them, so a crafted argument ran arbitrary Python in FreeCAD without calling
+  `freecad_execute_python`. 108 were found by an external probe, the 109th
+  (`freecad_mesh_decimate`, through the mesh name in its error message) by the new regression test.
+  Every tool handler now validates its arguments against the tool's `inputSchema` before
+  generating any Python (types, `enum`, nested arrays and objects), and every
+  string goes into Python as a JSON literal. `test/injection.test.mjs` checks every property of
+  every tool, and that every tool is reached by the payloads.
+- `freecad_server.FCMacro` requires a token: on every start it writes a random token to
+  `~/.freecad-mcp/token` (directory 0700, file 0600), the server sends it with each request, and the
+  macro runs nothing when it is missing or wrong (compared with `hmac.compare_digest`). Each request
+  refused for a missing or wrong token that sent data leaves a warning in the FreeCAD report view,
+  without the token. Requests
+  larger than 10 MiB are refused. Restart the macro in FreeCAD after updating.
+- The headless REPL script is written into a private `mkdtemp` folder (0700, file created
+  exclusively with 0600) instead of the fixed path `$TMPDIR/freecad-mcp-repl.py`.
+
+### Fixed
+- Headless bridge: calls are serialized (one at a time, in order), so concurrent calls no longer
+  receive each other's results.
+- Headless bridge: a call that times out kills the FreeCAD process; the next call starts a new one
+  and the late output of the old call can no longer be returned to it. Documents that were not saved
+  in the headless session are lost on a timeout, and the error message says so.
+- The output of one call (headless stdout or GUI socket reply) is capped at 10 MiB; above it the call
+  fails and the channel is reset.
+- Two concurrent first calls start a single headless FreeCAD process instead of two.
+
+### Changed
+- Compatibility: arguments are now validated strictly against each tool's `inputSchema`. A value of the
+  wrong type (for example `"10"` for a `number`) or an unknown key inside a nested object is an error;
+  unknown top-level keys are still ignored.
+- The version reported to MCP clients and on stderr is the package version (was `2.0.0`).
+
 ## [1.2.0] - 2026-11-26
 
 ### Fixed

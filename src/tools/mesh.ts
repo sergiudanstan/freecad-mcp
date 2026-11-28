@@ -1,6 +1,6 @@
 import { FreeCADBridge } from '../freecad-bridge.js';
 import { ToolResult, ToolArgs } from '../types.js';
-import { validatePositiveNumber, validateNonNegativeNumber, validateNumber, validateString } from '../validation.js';
+import { pyBool, validatePositiveNumber, validateNonNegativeNumber, validateNumber, validateString, validateToolArgs } from '../validation.js';
 
 const DOC_PREAMBLE = `doc = FreeCAD.ActiveDocument
 if doc is None:
@@ -108,6 +108,7 @@ export async function handleMeshTool(
   args: ToolArgs,
   bridge: FreeCADBridge,
 ): Promise<ToolResult> {
+  validateToolArgs(MESH_TOOLS, name, args);
   switch (name) {
     case 'freecad_mesh_from_shape': {
       const objectName = args.objectName as string;
@@ -119,7 +120,7 @@ ${DOC_PREAMBLE}
 import Mesh, MeshPart
 obj = doc.getObject(${JSON.stringify(objectName)})
 if obj is None:
-    raise ValueError("Object not found: ${objectName}")
+    raise ValueError("Object not found: " + ${JSON.stringify(objectName)})
 shape = obj.Shape
 mesh_data = MeshPart.meshFromShape(Shape=shape, LinearDeflection=${linearDeflection}, AngularDeflection=${angularDeflection})
 mesh_obj = doc.addObject("Mesh::Feature", ${JSON.stringify(meshName)})
@@ -138,10 +139,10 @@ _mcp_result["result"] = {"name": mesh_obj.Name, "vertices": m.CountPoints, "face
 ${DOC_PREAMBLE}
 mesh_obj = doc.getObject(${JSON.stringify(meshName)})
 if mesh_obj is None:
-    raise ValueError("Mesh not found: ${meshName}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(meshName)})
 shape = Part.Shape()
 shape.makeShapeFromMesh(mesh_obj.Mesh.Topology, 0.1)
-if ${sewing ? 'True' : 'False'}:
+if ${pyBool(sewing)}:
     solid = Part.makeSolid(shape)
     shape_obj = doc.addObject("Part::Feature", ${JSON.stringify(shapeName)})
     shape_obj.Shape = solid
@@ -162,17 +163,17 @@ _mcp_result["result"] = {"name": shape_obj.Name, "volume": shape_obj.Shape.Volum
 ${DOC_PREAMBLE}
 mesh_obj = doc.getObject(${JSON.stringify(meshName)})
 if mesh_obj is None:
-    raise ValueError("Mesh not found: ${meshName}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(meshName)})
 m = mesh_obj.Mesh.copy()
 before_facets = m.CountFacets
 before_points = m.CountPoints
-if ${removeDuplicates ? 'True' : 'False'}:
+if ${pyBool(removeDuplicates)}:
     m.removeDuplicatedPoints()
     m.removeDuplicatedFacets()
-if ${fixNormals ? 'True' : 'False'}:
+if ${pyBool(fixNormals)}:
     m.harmonizeNormals()
     m.fixIndices()
-if ${fillHoles ? 'True' : 'False'}:
+if ${pyBool(fillHoles)}:
     m.fillupHoles(1000)
 mesh_obj.Mesh = m
 doc.recompute()
@@ -191,7 +192,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 mesh_obj = doc.getObject(${JSON.stringify(meshName)})
 if mesh_obj is None:
-    raise ValueError("Mesh not found: ${meshName}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(meshName)})
 m = mesh_obj.Mesh.copy()
 before = m.CountFacets
 target = int(before * (1.0 - ${targetReduction}))
@@ -214,7 +215,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 mesh_obj = doc.getObject(${JSON.stringify(meshName)})
 if mesh_obj is None:
-    raise ValueError("Mesh not found: ${meshName}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(meshName)})
 m = mesh_obj.Mesh.copy()
 before = m.CountFacets
 m.refine()
@@ -235,7 +236,7 @@ _mcp_result["result"] = {
 ${DOC_PREAMBLE}
 mesh_obj = doc.getObject(${JSON.stringify(meshName)})
 if mesh_obj is None:
-    raise ValueError("Mesh not found: ${meshName}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(meshName)})
 m = mesh_obj.Mesh
 bb = m.BoundBox
 _mcp_result["result"] = {
@@ -274,9 +275,9 @@ import Mesh
 m1_obj = doc.getObject(${JSON.stringify(mesh1Name)})
 m2_obj = doc.getObject(${JSON.stringify(mesh2Name)})
 if m1_obj is None:
-    raise ValueError("Mesh not found: ${mesh1Name}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(mesh1Name)})
 if m2_obj is None:
-    raise ValueError("Mesh not found: ${mesh2Name}")
+    raise ValueError("Mesh not found: " + ${JSON.stringify(mesh2Name)})
 m1 = m1_obj.Mesh.copy()
 m2 = m2_obj.Mesh.copy()
 result = Mesh.Mesh()

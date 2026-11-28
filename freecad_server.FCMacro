@@ -10,6 +10,10 @@ import socket
 import threading
 import json
 import queue
+import os
+import time
+import hmac
+import secrets
 import FreeCAD
 import FreeCADGui
 import Part
@@ -20,6 +24,11 @@ except ImportError:
     from PySide2 import QtCore
 
 MCP_PORT = 12345
+MCP_MAX_REQUEST_BYTES = 10485760
+MCP_END = b'\n__MCP_END__\n'
+MCP_AUTH_PREFIX = b'__MCP_AUTH__:'
+MCP_TOKEN_DIR = os.path.join(os.path.expanduser('~'), '.freecad-mcp')
+MCP_TOKEN_FILE = os.path.join(MCP_TOKEN_DIR, 'token')
 
 _cmd_queue = queue.Queue()
 _result_dict = {}
@@ -37,18 +46,66 @@ def _mcp_json(value):
     return repr(value)
 
 
-def _handle_client(conn):
+def _write_token():
+    # A new token on every start, readable only by the user (dir 0700, file 0600, also when they
+    # already existed with wider modes). The token itself is never printed or returned.
+    token = secrets.token_hex(32)
+    os.makedirs(MCP_TOKEN_DIR, mode=0o700, exist_ok=True)
+    os.chmod(MCP_TOKEN_DIR, 0o700)
+    fd = os.open(MCP_TOKEN_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
-        data = b''
+        os.fchmod(fd, 0o600)
+        os.write(fd, token.encode('ascii'))
+    finally:
+        os.close(fd)
+    return token
+
+
+def _send_json(conn, obj):
+    conn.sendall(json.dumps(obj).encode('utf-8'))
+
+
+def _reject_oversized(conn):
+    # Answer, half-close, then drain what the client is still sending: close() with unread input
+    # sends a TCP reset and the client would lose the response.
+    _send_json(conn, {"success": False, "error": "Request exceeds %d bytes" % MCP_MAX_REQUEST_BYTES})
+    try:
+        conn.shutdown(socket.SHUT_WR)
+        deadline = time.monotonic() + 5.0
         while True:
-            chunk = conn.recv(8192)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            conn.settimeout(remaining)
+            if not conn.recv(65536):
+                break
+    except OSError:
+        pass
+
+
+def _handle_client(conn, token):
+    try:
+        data = bytearray()
+        while True:
+            chunk = conn.recv(65536)
             if not chunk:
                 break
             data += chunk
-            if b'\n__MCP_END__\n' in data:
+            if len(data) > MCP_MAX_REQUEST_BYTES:
+                _reject_oversized(conn)
+                return
+            if data.find(MCP_END, max(0, len(data) - len(chunk) - len(MCP_END))) != -1:
                 break
 
-        code = data.decode('utf-8').split('\n__MCP_END__\n')[0]
+        request = bytes(data).split(MCP_END, 1)[0]
+        first_line, _, code = request.partition(b'\n')
+        supplied = first_line[len(MCP_AUTH_PREFIX):] if first_line.startswith(MCP_AUTH_PREFIX) else b''
+        if not hmac.compare_digest(supplied, token.encode('ascii')):
+            if data:  # an empty connection (bridge checkSocket, probes) is not an attack; log no value from the request
+                FreeCAD.Console.PrintWarning("MCP Server: rejected unauthorized request\n")
+            _send_json(conn, {"success": False, "error": "Unauthorized"})
+            return
+        code = code.decode('utf-8')
 
         event = threading.Event()
         req_id = id(event)
@@ -85,14 +142,23 @@ def _socket_server():
         FreeCAD.Console.PrintError(f"MCP Server: Port {MCP_PORT} already in use: {e}\n")
         return
     server.listen(1)
+    # The token is written only once this instance owns the port: a second start whose bind fails
+    # leaves the running server's token file alone.
+    try:
+        token = _write_token()
+    except OSError as e:
+        FreeCAD.Console.PrintError(f"MCP Server: cannot write token file {MCP_TOKEN_FILE}: {e}\n")
+        server.close()
+        return
     server.settimeout(1.0)
     _server_running = True
     FreeCAD.Console.PrintMessage(f"MCP Socket Server listening on 127.0.0.1:{MCP_PORT}\n")
+    FreeCAD.Console.PrintMessage(f"MCP Server: auth token written to {MCP_TOKEN_FILE}\n")
 
     while _server_running:
         try:
             conn, addr = server.accept()
-            _handle_client(conn)
+            _handle_client(conn, token)
         except socket.timeout:
             continue
         except Exception as e:
